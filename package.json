@@ -19,9 +19,12 @@
         "express": "^4.21.2",
         "cors": "^2.8.5",
         "dotenv": "^16.4.7",
-        "lightningcss": "^1.29.1"
+        "lightningcss": "^1.29.1",
+        "tailwindcss": "^4.0.0",
+        "@tailwindcss/postcss": "^4.0.0"
     },
     "optionalDependencies": {
-        "@lightningcss/linux-x64-gnu": "1.29.1"
+        "@lightningcss/linux-x64-gnu": "1.29.1",
+        "@tailwindcss/oxide-linux-x64-gnu": "4.0.0"
     }
 }
