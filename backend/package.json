@@ -8,13 +8,14 @@
     "start": "ts-node src/index.ts",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "postinstall": "prisma generate"
+    "postinstall": "npx prisma generate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.19.2",
+    "prisma": "^6.19.2",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
