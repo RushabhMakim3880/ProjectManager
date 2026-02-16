@@ -150,20 +150,31 @@ app.use(express.json());
 
 app.all('*', async (req: Request, res: Response) => {
     try {
-        // Only log non-debug routes to keep logs clean
         if (!req.url.includes('/api/debug/')) {
             console.log(`BRIDGE_FORWARD: ${req.method} ${req.url}`);
         }
         
         const { app: backendApp } = await import('../backend/src/index.js');
-        // Express apps can be used as request handlers
-        return backendApp(req, res);
+        // Handle potential sync/async differences
+        if (typeof backendApp === 'function') {
+            return backendApp(req, res);
+        } else if (backendApp && typeof backendApp.default === 'function') {
+            return backendApp.default(req, res);
+        } else {
+            throw new Error('Backend app is not a valid request handler');
+        }
     } catch (err: any) {
-        console.error('BACKEND_BRIDGE_FAILURE:', err);
+        console.error('BACKEND_BRIDGE_FAILURE:', {
+            message: err.message,
+            stack: err.stack,
+            url: req.url,
+            method: req.method
+        });
         res.status(500).json({ 
             error: 'Backend Bridge Failed', 
             message: err.message,
-            stack: err.stack
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+            hint: 'Check Vercel logs for full stack trace'
         });
     }
 });

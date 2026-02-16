@@ -77,9 +77,13 @@ export const login = async (req: Request, res: Response) => {
                 partnerId: user.partnerProfile?.id,
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Login error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ 
+            error: 'Internal server error', 
+            message: error.message,
+            stack: error.stack
+        });
     }
 };
 
