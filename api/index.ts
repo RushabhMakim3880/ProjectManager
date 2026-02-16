@@ -113,7 +113,8 @@ app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     try {
         console.log('DEBUG: Seeding admin user...');
         const { prisma } = await import('../backend/src/lib/prisma.js');
-        const bcrypt = await import('bcryptjs');
+        const bcryptModule = await import('bcryptjs');
+        const bcrypt = (bcryptModule as any).default || bcryptModule;
 
         const email = 'admin@protrack.com';
         const password = 'Password@123';
