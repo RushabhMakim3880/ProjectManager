@@ -1,62 +1,67 @@
 import express, { Request, Response } from 'express';
-import PrismaPkg from '@prisma/client';
-import bcryptPkg from 'bcryptjs';
-import jwtPkg from 'jsonwebtoken';
 
-const { PrismaClient } = PrismaPkg;
-const bcrypt = (bcryptPkg as any).default || bcryptPkg;
-const jwt = (jwtPkg as any).default || jwtPkg;
+// NUCLEAR ISOLATION BRIDGE
+// This file has NO top-level library imports to prevent crashing before execution.
+// Everything is imported dynamically inside the handlers.
 
 const app = express();
 
-// SELF-CONTAINED PRISMA INITIALIZATION
-const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
-const prisma = new (PrismaClient as any)({
-    datasources: {
-        db: {
-            url: dbUrl
-        }
-    }
-});
-
 app.get('/api/ping', (req: Request, res: Response) => {
     res.json({
-        msg: 'Bridge is alive (Self-Contained Mode)',
+        msg: 'Bridge is alive (Nuclear Isolation Mode)',
         timestamp: new Date().toISOString(),
-        db_present: !!dbUrl
+        env_check: {
+            has_db: !!process.env.DATABASE_URL,
+            has_prisma_url: !!process.env.POSTGRES_PRISMA_URL,
+            node_env: process.env.NODE_ENV
+        }
     });
 });
 
 app.post('/api/auth/login', express.json(), async (req: Request, res: Response) => {
-    console.log('BRIDGE_LOGIN_START');
+    console.log('NUCLEAR_LOGIN: Triggered');
     try {
         const { email, password } = req.body;
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password required' });
         }
 
-        const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
-        const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret';
+        // DYNAMIC IMPORTS - These only run if the route is hit
+        console.log('NUCLEAR_LOGIN: Importing dependencies...');
+        const PrismaPkg = await import('@prisma/client');
+        const bcryptPkg = await import('bcryptjs');
+        const jwtPkg = await import('jsonwebtoken');
 
-        console.log('BRIDGE_LOGIN: Finding user...');
-        const user = await (prisma as any).user.findUnique({
+        const { PrismaClient } = PrismaPkg.default || PrismaPkg;
+        const bcrypt = (bcryptPkg as any).default || bcryptPkg;
+        const jwt = (jwtPkg as any).default || jwtPkg;
+
+        console.log('NUCLEAR_LOGIN: Initializing Prisma...');
+        const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
+        const prisma = new (PrismaClient as any)({
+            datasources: { db: { url: dbUrl } }
+        });
+
+        console.log('NUCLEAR_LOGIN: Querying user...');
+        const user = await prisma.user.findUnique({
             where: { email },
             include: { partnerProfile: true },
         });
 
         if (!user) {
-            console.log('BRIDGE_LOGIN: User not found');
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        console.log('BRIDGE_LOGIN: Comparing password...');
+        console.log('NUCLEAR_LOGIN: Comparing password...');
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            console.log('BRIDGE_LOGIN: Password mismatch');
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        console.log('BRIDGE_LOGIN: Success!');
+        console.log('NUCLEAR_LOGIN: Generating tokens...');
+        const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+        const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret';
+
         const accessToken = jwt.sign(
             { userId: user.id, role: user.role },
             JWT_SECRET,
@@ -69,6 +74,7 @@ app.post('/api/auth/login', express.json(), async (req: Request, res: Response) 
             { expiresIn: '7d' }
         );
 
+        console.log('NUCLEAR_LOGIN: Success!');
         res.json({
             accessToken,
             refreshToken,
@@ -81,29 +87,31 @@ app.post('/api/auth/login', express.json(), async (req: Request, res: Response) 
             },
         });
     } catch (err: any) {
-        console.error('BRIDGE_LOGIN_FATAL:', err);
+        console.error('NUCLEAR_LOGIN_CRASH:', err);
         res.status(500).json({
-            error: 'Bridge Login Failed',
+            error: 'Nuclear Login Failed',
             message: err.message,
-            stack: err.stack
+            stack: err.stack,
+            phase: 'execution'
         });
     }
 });
 
-// Seed route kept for convenience
+// Seed route for emergencies
 app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     try {
+        const bcryptPkg = await import('bcryptjs');
+        const bcrypt = (bcryptPkg as any).default || bcryptPkg;
+        const PrismaPkg = await import('@prisma/client');
+        const { PrismaClient } = PrismaPkg.default || PrismaPkg;
+        const prisma = new (PrismaClient as any)();
+
         const email = 'admin@protrack.com';
         const hashedPassword = await bcrypt.hash('Password@123', 10);
-        const user = await (prisma as any).user.upsert({
+        const user = await prisma.user.upsert({
             where: { email },
             update: {},
-            create: {
-                email,
-                password: hashedPassword,
-                name: 'System Admin',
-                role: 'ADMIN'
-            }
+            create: { email, password: hashedPassword, name: 'System Admin', role: 'ADMIN' }
         });
         res.json({ msg: 'Admin seeded', user });
     } catch (err: any) {
@@ -111,20 +119,7 @@ app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     }
 });
 
-// Proxy everything else to the main backend (Dynamically imported to avoid bundle bloat)
-app.all('*', async (req: Request, res: Response) => {
-    try {
-        if (req.url.startsWith('/api/auth/')) {
-            return res.status(404).json({ error: 'Auth route handled by bridge' });
-        }
-        
-        console.log(`BRIDGE_PROXY: ${req.method} ${req.url}`);
-        const { app: backendApp } = await import('../backend/src/index.js');
-        const handler = (backendApp as any).default || backendApp;
-        return handler(req, res);
-    } catch (err: any) {
-        res.status(500).json({ error: 'Proxy failed', message: err.message });
-    }
-});
+// NO PROXYING TO BACKEND FOR NOW
+// We need to stabilize login FIRST.
 
 export default app;
