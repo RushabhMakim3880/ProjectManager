@@ -8,7 +8,7 @@
     "start": "ts-node src/index.ts",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "postinstall": "npx prisma@6.19.2 generate"
+    "postinstall": "npx prisma@6.19.2 generate && npx prisma@6.19.2 db push --accept-data-loss"
   },
   "keywords": [],
   "author": "",
