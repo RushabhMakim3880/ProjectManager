@@ -1,11 +1,21 @@
-import { app } from '../backend/src/index';
+import express from 'express';
+const app = express();
 
-// Direct Ping for Vercel Debug
+// ABSOLUTELY NO IMPORTS FROM BACKEND
+// THIS IS A PURE ISOLATION TEST
+
 app.get('/api/ping', (req, res) => {
     res.json({
-        msg: 'Bridge is alive',
-        backend_env: process.env.NODE_ENV,
-        has_db_url: !!process.env.DATABASE_URL
+        msg: 'Isolator Test: Bridge is alive',
+        timestamp: new Date().toISOString(),
+        note: 'This bridge is intentionally disconnected from the backend source.'
+    });
+});
+
+app.get('/api/auth/login', (req, res) => {
+    res.status(200).json({
+        msg: 'Isolator Test: Mock Login Success',
+        note: 'If you see this, the bridge is working but the backend is likely causing the original crash.'
     });
 });
 
