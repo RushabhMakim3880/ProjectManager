@@ -1,0 +1,1 @@
+{"version":3,"file":"auditMiddleware.d.ts","sourceRoot":"","sources":["auditMiddleware.ts"],"names":[],"mappings":"AAAA,OAAO,EAAgB,KAAK,QAAQ,EAAE,KAAK,YAAY,EAAE,MAAM,SAAS,CAAC;AAEzE,OAAO,EAAE,KAAK,WAAW,EAAE,MAAM,qBAAqB,CAAC;AAEvD,eAAO,MAAM,SAAS,GAAI,QAAQ,MAAM,EAAE,QAAQ,MAAM,MACtC,KAAK,WAAW,EAAE,KAAK,QAAQ,EAAE,MAAM,YAAY,kBAkBpE,CAAC"}
