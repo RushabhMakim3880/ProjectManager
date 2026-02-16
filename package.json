@@ -14,7 +14,7 @@
         "postinstall": "npm run postinstall --workspace=backend"
     },
     "dependencies": {
-        "@prisma/client": "^6.19.2",
-        "prisma": "^6.19.2"
+        "@prisma/client": "6.19.2",
+        "prisma": "6.19.2"
     }
 }
