@@ -97,6 +97,30 @@ app.get('/api/debug/tables', async (req, res) => {
     }
 });
 
+app.get('/api/debug/migrate', async (req, res) => {
+    try {
+        console.log('DEBUG: Running DB Push from Lambda...');
+        const { execSync } = await import('child_process');
+
+        // Use the exact version and force it
+        const output = execSync('npx prisma@6.19.2 db push --accept-data-loss', {
+            env: { ...process.env },
+            encoding: 'utf-8'
+        });
+
+        res.json({
+            msg: 'Migration command executed',
+            output: output
+        });
+    } catch (err: any) {
+        console.error('DEBUG_MIGRATE_FAILURE:', err);
+        res.status(500).json({
+            error: 'Migration failed',
+            message: err.message,
+            stderr: err.stderr
+        });
+    }
+});
 app.get('/api/debug/seed-admin', async (req, res) => {
     try {
         console.log('DEBUG: Seeding admin user...');
@@ -132,3 +156,11 @@ app.get('/api/debug/seed-admin', async (req, res) => {
         });
     }
 });
+
+// Final error catcher to prevent FUNCTION_INVOCATION_FAILED
+app.use((err: any, req: any, res: any, next: any) => {
+    console.error('FATAL_BRIDGE_ERROR:', err);
+    res.status(500).json({ error: 'Fatal Bridge Error', message: err.message });
+});
+
+export default app;
