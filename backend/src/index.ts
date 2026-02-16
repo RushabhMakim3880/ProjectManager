@@ -59,4 +59,5 @@ if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     console.log('Server is running in Production/Serverless mode');
 }
 
+import { prisma } from './lib/prisma.js';
 export { app, prisma };
