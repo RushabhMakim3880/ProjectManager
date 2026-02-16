@@ -46,6 +46,30 @@ app.get('/api/debug/load-backend', async (req, res) => {
     }
 });
 
+app.get('/api/debug/query-test', async (req, res) => {
+    try {
+        console.log('DEBUG: Attempting Prisma Query...');
+        const { prisma } = await import('../backend/src/lib/prisma.js');
+
+        // This is the moment of truth: Does the connection kill the lambda?
+        const result = await prisma.$queryRaw`SELECT 1 as test`;
+
+        res.json({
+            msg: 'Prisma Query Success!',
+            result: result
+        });
+    } catch (err: any) {
+        console.error('DEBUG_QUERY_FAILURE:', err);
+        res.status(500).json({
+            error: 'Prisma Query Failed',
+            message: err.message,
+            code: err.code,
+            meta: err.meta,
+            stack: err.stack
+        });
+    }
+});
+
 app.get('/api/auth/login', (req, res) => {
     res.status(200).json({
         msg: 'Isolator Test: Mock Login Success',
