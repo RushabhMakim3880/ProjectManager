@@ -109,7 +109,7 @@ app.get('/api/debug/migrate', async (req: Request, res: Response) => {
         note: 'The "your_vercel_postgres_url" can be found in your Vercel Project Settings > Storage or Environment Variables.'
     });
 });
-app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
+app.get('/api/debug/seed-admin', express.json(), async (req: Request, res: Response) => {
     try {
         console.log('DEBUG: Seeding admin user...');
         const { prisma } = await import('../backend/src/lib/prisma.js');
@@ -146,7 +146,7 @@ app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     }
 });
 
-app.use(express.json());
+// express.json() moved to specific routes that need it to prevent body drain before forwarding
 
 app.all('*', async (req: Request, res: Response) => {
     try {
