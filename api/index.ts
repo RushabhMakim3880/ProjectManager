@@ -1,22 +1,31 @@
-import express from 'express';
-const app = express();
+import { app } from '../backend/src/index';
+import { prisma } from '../backend/src/lib/prisma';
 
-// ABSOLUTELY NO IMPORTS FROM BACKEND
-// THIS IS A PURE ISOLATION TEST
-
+// Reconnected Ping
 app.get('/api/ping', (req, res) => {
     res.json({
-        msg: 'Isolator Test: Bridge is alive',
-        timestamp: new Date().toISOString(),
-        note: 'This bridge is intentionally disconnected from the backend source.'
+        msg: 'Reconnected: Bridge and Backend are linked',
+        database_ready: !!process.env.DATABASE_URL,
+        env: process.env.NODE_ENV
     });
 });
 
-app.get('/api/auth/login', (req, res) => {
-    res.status(200).json({
-        msg: 'Isolator Test: Mock Login Success',
-        note: 'If you see this, the bridge is working but the backend is likely causing the original crash.'
-    });
+// Direct Database Connectivity Test
+app.get('/api/db-check', async (req, res) => {
+    try {
+        console.log('API_DB_CHECK: Attempting to query DB version...');
+        const result = await (prisma as any).$queryRaw`SELECT version()`;
+        res.json({ status: 'connected', db: result });
+    } catch (err: any) {
+        console.error('DB_CHECK_FAILURE:', err);
+        res.status(500).json({
+            status: 'failed',
+            error: err.message,
+            code: err.code,
+            meta: err.meta,
+            hint: 'Check if your DATABASE_URL in Vercel is the pooled version (POSTGRES_PRISMA_URL)'
+        });
+    }
 });
 
 export default app;
