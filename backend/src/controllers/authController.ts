@@ -1,7 +1,10 @@
 import { type Request, type Response } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import bcryptPkg from 'bcryptjs';
+import jwtPkg from 'jsonwebtoken';
 import { prisma } from '../lib/prisma.js';
+
+const bcrypt = (bcryptPkg as any).default || bcryptPkg;
+const jwt = (jwtPkg as any).default || jwtPkg;
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret';
@@ -35,9 +38,13 @@ export const signup = async (req: Request, res: Response) => {
         }
 
         res.status(201).json({ message: 'User created successfully', userId: user.id });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Signup error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ 
+            error: 'Internal server error',
+            message: error.message,
+            stack: error.stack 
+        });
     }
 };
 
@@ -104,8 +111,12 @@ export const refresh = async (req: Request, res: Response) => {
         );
 
         res.json({ accessToken });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Refresh error:', error);
-        res.status(403).json({ error: 'Invalid refresh token' });
+        res.status(403).json({ 
+            error: 'Invalid refresh token',
+            message: error.message,
+            stack: error.stack
+        });
     }
 };
