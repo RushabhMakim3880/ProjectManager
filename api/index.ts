@@ -98,28 +98,16 @@ app.get('/api/debug/tables', async (req, res) => {
 });
 
 app.get('/api/debug/migrate', async (req, res) => {
-    try {
-        console.log('DEBUG: Running DB Push from Lambda...');
-        const { execSync } = await import('child_process');
-
-        // Use the exact version and force it
-        const output = execSync('npx prisma@6.19.2 db push --accept-data-loss', {
-            env: { ...process.env },
-            encoding: 'utf-8'
-        });
-
-        res.json({
-            msg: 'Migration command executed',
-            output: output
-        });
-    } catch (err: any) {
-        console.error('DEBUG_MIGRATE_FAILURE:', err);
-        res.status(500).json({
-            error: 'Migration failed',
-            message: err.message,
-            stderr: err.stderr
-        });
-    }
+    res.json({
+        msg: 'Vercel environment is read-only. Please run migration locally:',
+        instructions: [
+            '1. Open your terminal in the project root.',
+            '2. Run: SET DATABASE_URL="your_vercel_postgres_url"',
+            '3. Run: npx prisma db push',
+            '4. After it finishes, visit /api/debug/seed-admin'
+        ],
+        note: 'The "your_vercel_postgres_url" can be found in your Vercel Project Settings > Storage or Environment Variables.'
+    });
 });
 app.get('/api/debug/seed-admin', async (req, res) => {
     try {
