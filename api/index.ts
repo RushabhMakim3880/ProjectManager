@@ -146,6 +146,28 @@ app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     }
 });
 
+app.use(express.json());
+
+app.all('*', async (req: Request, res: Response) => {
+    try {
+        // Only log non-debug routes to keep logs clean
+        if (!req.url.includes('/api/debug/')) {
+            console.log(`BRIDGE_FORWARD: ${req.method} ${req.url}`);
+        }
+        
+        const { app: backendApp } = await import('../backend/src/index.js');
+        // Express apps can be used as request handlers
+        return backendApp(req, res);
+    } catch (err: any) {
+        console.error('BACKEND_BRIDGE_FAILURE:', err);
+        res.status(500).json({ 
+            error: 'Backend Bridge Failed', 
+            message: err.message,
+            stack: err.stack
+        });
+    }
+});
+
 // Final error catcher to prevent FUNCTION_INVOCATION_FAILED
 app.use((err: any, req: any, res: any, next: any) => {
     console.error('FATAL_BRIDGE_ERROR:', err);
