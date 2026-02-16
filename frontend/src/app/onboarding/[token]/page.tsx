@@ -58,7 +58,8 @@ export default function OnboardingPage() {
                 setInvitation(res.data);
                 setFormData(prev => ({ ...prev, bankAccountName: res.data.name }));
             } catch (err: any) {
-                setError(err.response?.data?.error || 'Invalid or expired invitation link');
+                const errorData = err.response?.data?.error;
+                setError(typeof errorData === 'string' ? errorData : errorData?.message || 'Invalid or expired invitation link');
             } finally {
                 setLoading(false);
             }
@@ -107,7 +108,8 @@ export default function OnboardingPage() {
             await api.post(`/invitations/accept/${token}`, formData);
             setSuccess(true);
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to complete onboarding');
+            const errorData = err.response?.data?.error;
+            setError(typeof errorData === 'string' ? errorData : errorData?.message || 'Failed to complete onboarding');
         } finally {
             setSubmitting(false);
         }

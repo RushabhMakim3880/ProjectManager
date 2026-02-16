@@ -24,7 +24,8 @@ export default function LoginPage() {
             localStorage.setItem('user', JSON.stringify(data.user));
             router.push('/dashboard');
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
+            const errorData = err.response?.data?.error;
+            setError(typeof errorData === 'string' ? errorData : errorData?.message || 'Login failed. Please check your credentials.');
         } finally {
             setLoading(false);
         }
