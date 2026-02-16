@@ -1,17 +1,17 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 const app = express();
 
 // ABSOLUTELY NO IMPORTS FROM BACKEND
 // THIS IS A PURE ISOLATION TEST
 
-app.get('/api/ping', (req, res) => {
+app.get('/api/ping', (req: Request, res: Response) => {
     res.json({
         msg: 'Isolator Test: Bridge is alive',
         timestamp: new Date().toISOString()
     });
 });
 
-app.get('/api/debug/load-prisma', async (req, res) => {
+app.get('/api/debug/load-prisma', async (req: Request, res: Response) => {
     try {
         console.log('DEBUG: Attempting dynamic import of Prisma...');
         const { prisma } = await import('../backend/src/lib/prisma.js');
@@ -31,7 +31,7 @@ app.get('/api/debug/load-prisma', async (req, res) => {
     }
 });
 
-app.get('/api/debug/load-backend', async (req, res) => {
+app.get('/api/debug/load-backend', async (req: Request, res: Response) => {
     try {
         console.log('DEBUG: Attempting dynamic import of Backend App...');
         const { app: backendApp } = await import('../backend/src/index.js');
@@ -46,7 +46,7 @@ app.get('/api/debug/load-backend', async (req, res) => {
     }
 });
 
-app.get('/api/debug/query-test', async (req, res) => {
+app.get('/api/debug/query-test', async (req: Request, res: Response) => {
     try {
         console.log('DEBUG: Attempting Prisma Query...');
         const { prisma } = await import('../backend/src/lib/prisma.js');
@@ -70,7 +70,7 @@ app.get('/api/debug/query-test', async (req, res) => {
     }
 });
 
-app.get('/api/debug/tables', async (req, res) => {
+app.get('/api/debug/tables', async (req: Request, res: Response) => {
     try {
         console.log('DEBUG: Listing tables...');
         const { prisma } = await import('../backend/src/lib/prisma.js');
@@ -97,19 +97,19 @@ app.get('/api/debug/tables', async (req, res) => {
     }
 });
 
-app.get('/api/debug/migrate', async (req, res) => {
+app.get('/api/debug/migrate', async (req: Request, res: Response) => {
     res.json({
         msg: 'Vercel environment is read-only. Please run migration locally:',
         instructions: [
             '1. Open your terminal in the project root.',
-            '2. Run: SET DATABASE_URL="your_vercel_postgres_url"',
-            '3. Run: npx prisma db push',
+            '2. Run: $env:DATABASE_URL="your_vercel_postgres_url"',
+            '3. Run: npx prisma db push --schema=backend/prisma/schema.prisma',
             '4. After it finishes, visit /api/debug/seed-admin'
         ],
         note: 'The "your_vercel_postgres_url" can be found in your Vercel Project Settings > Storage or Environment Variables.'
     });
 });
-app.get('/api/debug/seed-admin', async (req, res) => {
+app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     try {
         console.log('DEBUG: Seeding admin user...');
         const { prisma } = await import('../backend/src/lib/prisma.js');
