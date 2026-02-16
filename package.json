@@ -12,5 +12,11 @@
         "build:frontend": "npm run build --workspace=frontend",
         "build:backend": "npm run build --workspace=backend",
         "postinstall": "npm run postinstall --workspace=backend"
+    },
+    "dependencies": {
+        "@prisma/client": "^6.19.2"
+    },
+    "devDependencies": {
+        "prisma": "^6.19.2"
     }
 }
