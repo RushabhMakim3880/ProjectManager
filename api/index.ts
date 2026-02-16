@@ -173,7 +173,7 @@ app.all('*', async (req: Request, res: Response) => {
         res.status(500).json({ 
             error: 'Backend Bridge Failed', 
             message: err.message,
-            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+            stack: err.stack,
             hint: 'Check Vercel logs for full stack trace'
         });
     }
