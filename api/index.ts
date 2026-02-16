@@ -70,11 +70,31 @@ app.get('/api/debug/query-test', async (req, res) => {
     }
 });
 
-app.get('/api/auth/login', (req, res) => {
-    res.status(200).json({
-        msg: 'Isolator Test: Mock Login Success',
-        note: 'If you see this, the bridge is working but the backend is likely causing the original crash.'
-    });
+app.get('/api/debug/tables', async (req, res) => {
+    try {
+        console.log('DEBUG: Listing tables...');
+        const { prisma } = await import('../backend/src/lib/prisma.js');
+
+        // List all tables in the public schema (PostgreSQL specific)
+        const tables: any[] = await prisma.$queryRaw`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+        `;
+
+        res.json({
+            msg: 'Table list retrieved',
+            count: tables.length,
+            tables: tables.map(t => t.table_name)
+        });
+    } catch (err: any) {
+        console.error('DEBUG_TABLES_FAILURE:', err);
+        res.status(500).json({
+            error: 'Table list failed',
+            message: err.message,
+            stack: err.stack
+        });
+    }
 });
 
 export default app;
