@@ -1,166 +1,62 @@
 import express, { Request, Response } from 'express';
+import PrismaPkg from '@prisma/client';
+import bcryptPkg from 'bcryptjs';
+import jwtPkg from 'jsonwebtoken';
+
+const { PrismaClient } = PrismaPkg;
+const bcrypt = (bcryptPkg as any).default || bcryptPkg;
+const jwt = (jwtPkg as any).default || jwtPkg;
+
 const app = express();
 
-// ABSOLUTELY NO IMPORTS FROM BACKEND
-// THIS IS A PURE ISOLATION TEST
+// SELF-CONTAINED PRISMA INITIALIZATION
+const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
+const prisma = new (PrismaClient as any)({
+    datasources: {
+        db: {
+            url: dbUrl
+        }
+    }
+});
 
 app.get('/api/ping', (req: Request, res: Response) => {
     res.json({
-        msg: 'Isolator Test: Bridge is alive',
-        timestamp: new Date().toISOString()
+        msg: 'Bridge is alive (Self-Contained Mode)',
+        timestamp: new Date().toISOString(),
+        db_present: !!dbUrl
     });
 });
 
-app.get('/api/debug/load-prisma', async (req: Request, res: Response) => {
-    try {
-        console.log('DEBUG: Attempting dynamic import of Prisma...');
-        const { prisma } = await import('../backend/src/lib/prisma.js');
-        const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
-        res.json({
-            msg: 'Prisma module loaded successfully',
-            db_url_present: !!dbUrl,
-            db_url_start: dbUrl?.substring(0, 10)
-        });
-    } catch (err: any) {
-        console.error('DEBUG_LOAD_FAILURE:', err);
-        res.status(500).json({
-            error: 'Prisma load failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
-
-app.get('/api/debug/load-backend', async (req: Request, res: Response) => {
-    try {
-        console.log('DEBUG: Attempting dynamic import of Backend App...');
-        const { app: backendApp } = await import('../backend/src/index.js');
-        res.json({ msg: 'Backend main module loaded successfully' });
-    } catch (err: any) {
-        console.error('DEBUG_LOAD_FAILURE:', err);
-        res.status(500).json({
-            error: 'Backend load failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
-
-app.get('/api/debug/query-test', async (req: Request, res: Response) => {
-    try {
-        console.log('DEBUG: Attempting Prisma Query...');
-        const { prisma } = await import('../backend/src/lib/prisma.js');
-
-        // This is the moment of truth: Does the connection kill the lambda?
-        const result = await prisma.$queryRaw`SELECT 1 as test`;
-
-        res.json({
-            msg: 'Prisma Query Success!',
-            result: result
-        });
-    } catch (err: any) {
-        console.error('DEBUG_QUERY_FAILURE:', err);
-        res.status(500).json({
-            error: 'Prisma Query Failed',
-            message: err.message,
-            code: err.code,
-            meta: err.meta,
-            stack: err.stack
-        });
-    }
-});
-
-app.get('/api/debug/tables', async (req: Request, res: Response) => {
-    try {
-        console.log('DEBUG: Listing tables...');
-        const { prisma } = await import('../backend/src/lib/prisma.js');
-
-        // List all tables in the public schema (PostgreSQL specific)
-        const tables: any[] = await prisma.$queryRaw`
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public'
-        `;
-
-        res.json({
-            msg: 'Table list retrieved',
-            count: tables.length,
-            tables: tables.map(t => t.table_name)
-        });
-    } catch (err: any) {
-        console.error('DEBUG_TABLES_FAILURE:', err);
-        res.status(500).json({
-            error: 'Table list failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
-
-app.get('/api/debug/migrate', async (req: Request, res: Response) => {
-    res.json({
-        msg: 'Vercel environment is read-only. Please run migration locally:',
-        instructions: [
-            '1. Open your terminal in the project root.',
-            '2. Run: $env:DATABASE_URL="your_vercel_postgres_url"',
-            '3. Run: npx prisma db push --schema=backend/prisma/schema.prisma',
-            '4. After it finishes, visit /api/debug/seed-admin'
-        ],
-        note: 'The "your_vercel_postgres_url" can be found in your Vercel Project Settings > Storage or Environment Variables.'
-    });
-});
-
-// This is a placeholder for a login controller, as requested by the instruction.
-// It's placed here as a separate function, not directly inside the seed-admin route.
-export const login = async (req: Request, res: Response) => {
-    console.log('AUTH_CONTROLLER: Login attempt start...', { email: req.body?.email });
-    try {
-        const { email, password } = req.body;
-        // ... rest of login logic would go here ...
-        res.status(501).json({ message: 'Login endpoint not fully implemented in isolator test' });
-    } catch (error: any) {
-        console.error('AUTH_CONTROLLER: Login failed', error);
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// Direct Auth Handler (to bypass backend initialization crashes)
 app.post('/api/auth/login', express.json(), async (req: Request, res: Response) => {
-    console.log('BRIDGE_DIRECT_AUTH: Login attempt...', { email: req.body?.email });
+    console.log('BRIDGE_LOGIN_START');
     try {
         const { email, password } = req.body;
         if (!email || !password) {
             return res.status(400).json({ error: 'Email and password required' });
         }
 
-        const { prisma } = await import('../backend/src/lib/prisma.js');
-        const bcryptModule = await import('bcryptjs');
-        const bcrypt = (bcryptModule as any).default || bcryptModule;
-        const jwtModule = await import('jsonwebtoken');
-        const jwt = (jwtModule as any).default || jwtModule;
-
         const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
         const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret';
 
-        console.log('BRIDGE_DIRECT_AUTH: Fetching user...');
-        const user = await prisma.user.findUnique({
+        console.log('BRIDGE_LOGIN: Finding user...');
+        const user = await (prisma as any).user.findUnique({
             where: { email },
             include: { partnerProfile: true },
         });
 
         if (!user) {
-            console.log('BRIDGE_DIRECT_AUTH: User not found');
+            console.log('BRIDGE_LOGIN: User not found');
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        console.log('BRIDGE_DIRECT_AUTH: Comparing password...');
+        console.log('BRIDGE_LOGIN: Comparing password...');
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            console.log('BRIDGE_DIRECT_AUTH: Password mismatch');
+            console.log('BRIDGE_LOGIN: Password mismatch');
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        console.log('BRIDGE_DIRECT_AUTH: Generating tokens...');
+        console.log('BRIDGE_LOGIN: Success!');
         const accessToken = jwt.sign(
             { userId: user.id, role: user.role },
             JWT_SECRET,
@@ -173,7 +69,6 @@ app.post('/api/auth/login', express.json(), async (req: Request, res: Response) 
             { expiresIn: '7d' }
         );
 
-        console.log('BRIDGE_DIRECT_AUTH: Success!');
         res.json({
             accessToken,
             refreshToken,
@@ -186,28 +81,21 @@ app.post('/api/auth/login', express.json(), async (req: Request, res: Response) 
             },
         });
     } catch (err: any) {
-        console.error('BRIDGE_DIRECT_AUTH_FAILURE:', err);
+        console.error('BRIDGE_LOGIN_FATAL:', err);
         res.status(500).json({
-            error: 'Direct Auth Failed',
+            error: 'Bridge Login Failed',
             message: err.message,
-            stack: err.stack,
-            hint: 'This means the crash is in the core logic (Prisma/Bcrypt/DB), not the Express app setup.'
+            stack: err.stack
         });
     }
 });
 
-app.get('/api/debug/seed-admin', express.json(), async (req: Request, res: Response) => {
+// Seed route kept for convenience
+app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     try {
-        console.log('DEBUG: Seeding admin user...');
-        const { prisma } = await import('../backend/src/lib/prisma.js');
-        const bcryptModule = await import('bcryptjs');
-        const bcrypt = (bcryptModule as any).default || bcryptModule;
-
         const email = 'admin@protrack.com';
-        const password = 'Password@123';
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const user = await prisma.user.upsert({
+        const hashedPassword = await bcrypt.hash('Password@123', 10);
+        const user = await (prisma as any).user.upsert({
             where: { email },
             update: {},
             create: {
@@ -217,61 +105,26 @@ app.get('/api/debug/seed-admin', express.json(), async (req: Request, res: Respo
                 role: 'ADMIN'
             }
         });
-
-        res.json({
-            msg: 'Admin user seeded successfully',
-            user: { id: user.id, email: user.email, role: user.role },
-            login_credentials: { email, password }
-        });
+        res.json({ msg: 'Admin seeded', user });
     } catch (err: any) {
-        console.error('DEBUG_SEED_FAILURE:', err);
-        res.status(500).json({
-            error: 'Seed failed',
-            message: err.message,
-            stack: err.stack
-        });
+        res.status(500).json({ error: err.message });
     }
 });
 
-// express.json() moved to specific routes that need it to prevent body drain before forwarding
-
-// Debug Middleware
-app.use((req, res, next) => {
-    if (!req.url.includes('/api/debug/')) {
-        console.log(`[BACKEND_DEBUG] ${req.method} ${req.url}`);
-    }
-    next();
-});
-
+// Proxy everything else to the main backend (Dynamically imported to avoid bundle bloat)
 app.all('*', async (req: Request, res: Response) => {
     try {
-        // Skip forwarding for auth routes since we handle them directly now
         if (req.url.startsWith('/api/auth/')) {
-             return res.status(404).json({ error: 'Auth route handled by bridge, method not supported here' });
+            return res.status(404).json({ error: 'Auth route handled by bridge' });
         }
-
-        console.log(`BRIDGE_START: ${req.method} ${req.url}`);
+        
+        console.log(`BRIDGE_PROXY: ${req.method} ${req.url}`);
         const { app: backendApp } = await import('../backend/src/index.js');
-        // ... rest of forwarding logic ...
-        console.error('BACKEND_BRIDGE_FAILURE:', {
-            message: err.message,
-            stack: err.stack,
-            url: req.url,
-            method: req.method
-        });
-        res.status(500).json({ 
-            error: 'Backend Bridge Failed', 
-            message: err.message,
-            stack: err.stack,
-            hint: 'Check Vercel logs for full stack trace'
-        });
+        const handler = (backendApp as any).default || backendApp;
+        return handler(req, res);
+    } catch (err: any) {
+        res.status(500).json({ error: 'Proxy failed', message: err.message });
     }
-});
-
-// Final error catcher to prevent FUNCTION_INVOCATION_FAILED
-app.use((err: any, req: any, res: any, next: any) => {
-    console.error('FATAL_BRIDGE_ERROR:', err);
-    res.status(500).json({ error: 'Fatal Bridge Error', message: err.message });
 });
 
 export default app;
