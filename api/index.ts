@@ -97,4 +97,38 @@ app.get('/api/debug/tables', async (req, res) => {
     }
 });
 
-export default app;
+app.get('/api/debug/seed-admin', async (req, res) => {
+    try {
+        console.log('DEBUG: Seeding admin user...');
+        const { prisma } = await import('../backend/src/lib/prisma.js');
+        const bcrypt = await import('bcryptjs');
+
+        const email = 'admin@protrack.com';
+        const password = 'Password@123';
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = await prisma.user.upsert({
+            where: { email },
+            update: {},
+            create: {
+                email,
+                password: hashedPassword,
+                name: 'System Admin',
+                role: 'ADMIN'
+            }
+        });
+
+        res.json({
+            msg: 'Admin user seeded successfully',
+            user: { id: user.id, email: user.email, role: user.role },
+            login_credentials: { email, password }
+        });
+    } catch (err: any) {
+        console.error('DEBUG_SEED_FAILURE:', err);
+        res.status(500).json({
+            error: 'Seed failed',
+            message: err.message,
+            stack: err.stack
+        });
+    }
+});
