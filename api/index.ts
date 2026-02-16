@@ -124,6 +124,78 @@ export const login = async (req: Request, res: Response) => {
     }
 };
 
+// Direct Auth Handler (to bypass backend initialization crashes)
+app.post('/api/auth/login', express.json(), async (req: Request, res: Response) => {
+    console.log('BRIDGE_DIRECT_AUTH: Login attempt...', { email: req.body?.email });
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password required' });
+        }
+
+        const { prisma } = await import('../backend/src/lib/prisma.js');
+        const bcryptModule = await import('bcryptjs');
+        const bcrypt = (bcryptModule as any).default || bcryptModule;
+        const jwtModule = await import('jsonwebtoken');
+        const jwt = (jwtModule as any).default || jwtModule;
+
+        const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+        const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret';
+
+        console.log('BRIDGE_DIRECT_AUTH: Fetching user...');
+        const user = await prisma.user.findUnique({
+            where: { email },
+            include: { partnerProfile: true },
+        });
+
+        if (!user) {
+            console.log('BRIDGE_DIRECT_AUTH: User not found');
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        console.log('BRIDGE_DIRECT_AUTH: Comparing password...');
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            console.log('BRIDGE_DIRECT_AUTH: Password mismatch');
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        console.log('BRIDGE_DIRECT_AUTH: Generating tokens...');
+        const accessToken = jwt.sign(
+            { userId: user.id, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '15m' }
+        );
+
+        const refreshToken = jwt.sign(
+            { userId: user.id },
+            JWT_REFRESH_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        console.log('BRIDGE_DIRECT_AUTH: Success!');
+        res.json({
+            accessToken,
+            refreshToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                partnerId: user.partnerProfile?.id,
+            },
+        });
+    } catch (err: any) {
+        console.error('BRIDGE_DIRECT_AUTH_FAILURE:', err);
+        res.status(500).json({
+            error: 'Direct Auth Failed',
+            message: err.message,
+            stack: err.stack,
+            hint: 'This means the crash is in the core logic (Prisma/Bcrypt/DB), not the Express app setup.'
+        });
+    }
+});
+
 app.get('/api/debug/seed-admin', express.json(), async (req: Request, res: Response) => {
     try {
         console.log('DEBUG: Seeding admin user...');
@@ -173,20 +245,14 @@ app.use((req, res, next) => {
 
 app.all('*', async (req: Request, res: Response) => {
     try {
+        // Skip forwarding for auth routes since we handle them directly now
+        if (req.url.startsWith('/api/auth/')) {
+             return res.status(404).json({ error: 'Auth route handled by bridge, method not supported here' });
+        }
+
         console.log(`BRIDGE_START: ${req.method} ${req.url}`);
         const { app: backendApp } = await import('../backend/src/index.js');
-        console.log('BRIDGE_BACKEND_LOADED');
-        
-        if (typeof backendApp === 'function') {
-            console.log('BRIDGE_CALLING_BACKEND');
-            return backendApp(req, res);
-        } else if (backendApp && typeof backendApp.default === 'function') {
-            console.log('BRIDGE_CALLING_BACKEND_DEFAULT');
-            return backendApp.default(req, res);
-        } else {
-            throw new Error('Backend app is not a valid request handler');
-        }
-    } catch (err: any) {
+        // ... rest of forwarding logic ...
         console.error('BACKEND_BRIDGE_FAILURE:', {
             message: err.message,
             stack: err.stack,
