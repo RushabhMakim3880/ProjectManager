@@ -58,6 +58,7 @@ model Partner {
   defaultContributionWeight Float @default(1)
   
   // 5. Financial & Payout Details
+  totalCapitalContributed Float  @default(0)
   bankAccountName  String?
   bankAccountNumber String?
   ifscSwift        String?
@@ -334,4 +335,17 @@ model SystemSetting {
   bankIfsc          String?
   bankSwift         String?
   updatedAt         DateTime @updatedAt
+}
+
+model CapitalInjection {
+  id          String   @id @default(cuid())
+  partnerId   String
+  partner     Partner  @relation(fields: [partnerId], references: [id])
+  amount      Float
+  date        DateTime @default(now())
+  equityDelta Float    // Change in equity percentage (e.g., +5.0)
+  postEquity  Float    // Equity snapshot after update
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
