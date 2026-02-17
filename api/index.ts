@@ -26,51 +26,8 @@ app.get('/api/ping', (req: Request, res: Response) => {
     });
 });
 
-// Direct Auth Handler (Maintained for reliability)
-app.post('/api/auth/login', express.json(), async (req: Request, res: Response) => {
-    try {
-        const { email, password } = req.body;
-        const PrismaPkg = await import('@prisma/client');
-        const bcryptPkg = await import('bcryptjs');
-        const jwtPkg = await import('jsonwebtoken');
-
-        const { PrismaClient } = PrismaPkg.default || PrismaPkg;
-        const bcrypt = (bcryptPkg as any).default || bcryptPkg;
-        const jwt = (jwtPkg as any).default || jwtPkg;
-
-        const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
-        const prisma = new (PrismaClient as any)({ datasources: { db: { url: dbUrl } } });
-
-        const user = await prisma.user.findUnique({
-            where: { email },
-            include: { partnerProfile: true },
-        });
-
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
-
-        const JWT_SECRET = process.env.JWT_SECRET || 'protrack_dev_secret_2024';
-        const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'protrack_dev_refresh_2024';
-
-        const accessToken = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '15m' });
-        const refreshToken = jwt.sign({ userId: user.id }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
-
-        res.json({
-            accessToken,
-            refreshToken,
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                role: user.role,
-                partnerId: user.partnerProfile?.id,
-            },
-        });
-    } catch (err: any) {
-        res.status(500).json({ error: 'Login Failed', message: err.message });
-    }
-});
+// Direct Auth Handler REMOVED - Delegating to backend/src/routes/authRoutes.ts via bridge below
+// This prevents logic duplication and potential 500 errors from unmaintained inline code.
 
 // MOUNT ROUTERS DIRECTLY (With JSON parsing for POST/PUT requests)
 app.use('/api/projects', express.json(), async (req, res, next) => {
@@ -232,6 +189,15 @@ app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     } catch (err: any) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// Global Error Handler
+app.use((err: any, req: Request, res: Response, next: any) => {
+    console.error('Global Error Handler:', err);
+    res.status(err.statusCode || 500).json({
+        error: 'Internal Server Error',
+        message: err.message || 'An unexpected error occurred'
+    });
 });
 
 export default app;
