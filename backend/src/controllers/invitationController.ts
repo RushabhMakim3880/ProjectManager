@@ -55,9 +55,13 @@ export const createInvitation = async (req: AuthRequest, res: Response) => {
             invitation,
             onboardingUrl
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Create invitation error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({
+            error: 'Create Invitation Failed',
+            message: error.message,
+            stack: error.stack
+        });
     }
 };
 
@@ -147,9 +151,14 @@ export const acceptInvitation = async (req: Request, res: Response) => {
         });
 
         res.status(201).json({ message: 'Onboarding complete', ...result });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Accept invitation error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({
+            error: 'Accept Invitation Failed',
+            message: error.message,
+            stack: error.stack,
+            phase: 'database_transaction'
+        });
     }
 };
 
