@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createProject, getProjects, getProjectById, updateProject, deleteProject, lockProject } from '../controllers/projectController.js';
-import { createTask, updateTask, getTasksByProject } from '../controllers/taskController.js';
+import { createTask, updateTask, getTasksByProject, deleteTask } from '../controllers/taskController.js';
 import { recalculateProject } from '../controllers/financialController.js';
 import { authenticate, authorize } from '../middleware/authMiddleware.js';
 
@@ -19,5 +19,6 @@ router.post('/:projectId/recalculate', authenticate, authorize(['ADMIN']), recal
 router.get('/:projectId/tasks', authenticate, getTasksByProject);
 router.post('/tasks', authenticate, authorize(['ADMIN']), createTask);
 router.patch('/tasks/:id', authenticate, updateTask);
+router.delete('/tasks/:id', authenticate, authorize(['ADMIN']), deleteTask);
 
 export default router;

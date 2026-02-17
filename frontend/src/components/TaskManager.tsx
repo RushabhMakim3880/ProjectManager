@@ -94,6 +94,16 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
         }
     };
 
+    const handleDeleteTask = async (taskId: string) => {
+        if (!confirm('Are you sure you want to delete this task?')) return;
+        try {
+            await api.delete(`/projects/tasks/${taskId}`);
+            onTaskUpdate();
+        } catch (err) {
+            console.error("Failed to delete task", err);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -208,7 +218,10 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                                             <span className="text-xs font-medium text-white">{task.assignedPartner?.user?.name || 'Unassigned'}</span>
                                         </div>
                                     </div>
-                                    <button className="p-2 text-neutral-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                                    <button
+                                        onClick={() => handleDeleteTask(task.id)}
+                                        className="p-2 text-neutral-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                    >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
                                 </div>
