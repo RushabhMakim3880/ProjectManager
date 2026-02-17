@@ -1,9 +1,26 @@
 import { type Request, type Response } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { type AuthRequest } from '../middleware/authMiddleware.js';
 
-export const createTask = async (req: Request, res: Response) => {
+export const createTask = async (req: AuthRequest, res: Response) => {
     try {
         const { projectId, name, category, effortWeight, assignedPartnerId } = req.body;
+        const userId = req.user?.userId;
+
+        // Check permissions
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { partnerProfile: true }
+        });
+
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+        const isAdmin = user.role === 'ADMIN';
+        const canLogTasks = user.partnerProfile?.canLogTasks;
+
+        if (!isAdmin && !canLogTasks) {
+            return res.status(403).json({ error: 'Forbidden: You do not have permission to create tasks' });
+        }
 
         const task = await prisma.task.create({
             data: {
@@ -11,7 +28,7 @@ export const createTask = async (req: Request, res: Response) => {
                 name,
                 category,
                 effortWeight: effortWeight || 1.0,
-                assignedPartnerId,
+                assignedPartnerId: assignedPartnerId || null,
             },
         });
 

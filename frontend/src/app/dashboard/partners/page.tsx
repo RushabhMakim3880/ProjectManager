@@ -16,11 +16,15 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import InvitePartnerModal from '@/components/InvitePartnerModal';
+import PartnerPermissionsModal from '@/components/PartnerPermissionsModal';
+import { ShieldCheck } from 'lucide-react';
 
 export default function PartnersPage() {
     const [partners, setPartners] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [inviteModalOpen, setInviteModalOpen] = useState(false);
+    const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
+    const [selectedPartner, setSelectedPartner] = useState<any>(null);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -105,6 +109,13 @@ export default function PartnersPage() {
                 isOpen={inviteModalOpen}
                 onClose={() => setInviteModalOpen(false)}
                 onSuccess={handleInviteSuccess}
+            />
+
+            <PartnerPermissionsModal
+                isOpen={permissionsModalOpen}
+                onClose={() => setPermissionsModalOpen(false)}
+                partner={selectedPartner}
+                onSuccess={fetchPartners}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -211,6 +222,18 @@ export default function PartnersPage() {
                                                         onClick={() => setOpenMenuId(null)}
                                                     />
                                                     <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl z-20 py-1 animate-in fade-in zoom-in-95 duration-200">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedPartner(partner);
+                                                                setPermissionsModalOpen(true);
+                                                                setOpenMenuId(null);
+                                                            }}
+                                                            className="w-full px-4 py-2.5 text-left text-sm text-neutral-300 hover:bg-neutral-800 flex items-center gap-3 transition-colors"
+                                                        >
+                                                            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                                                            Manage Permissions
+                                                        </button>
+                                                        <div className="h-px bg-neutral-800 my-1" />
                                                         <button
                                                             onClick={() => handleToggleEquity(partner.id, partner.isEquity)}
                                                             className="w-full px-4 py-2.5 text-left text-sm text-neutral-300 hover:bg-neutral-800 flex items-center gap-3 transition-colors"

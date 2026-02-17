@@ -72,14 +72,28 @@ export const calculateProjectContributions = async (projectId: string) => {
 export const calculateFinancials = async (projectId: string) => {
     const project = await prisma.project.findUnique({
         where: { id: projectId },
+        include: { transactions: true }
     });
 
     if (!project) throw new Error('Project not found');
 
-    const totalValue = project.totalValue;
-    const businessReserve = totalValue * 0.10;
-    const religiousAllocation = totalValue * 0.05;
-    const netDistributable = totalValue - businessReserve - religiousAllocation;
+    // Calculate actual funds received vs spent
+    const transactions = project.transactions || [];
+    const totalIncome = transactions
+        .filter((t: any) => t.type === 'INCOME')
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+    const totalExpenses = transactions
+        .filter((t: any) => t.type === 'EXPENSE')
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+    const actualBalance = totalIncome - totalExpenses;
+
+    // Profit Calculation Logic:
+    // We take the actual balance and apply the 85/10/5 split.
+    // This ensures partners are paid from REALIZED profit.
+    const businessReserve = actualBalance * 0.10;
+    const religiousAllocation = actualBalance * 0.05;
+    const netDistributable = actualBalance - businessReserve - religiousAllocation;
 
     const basePool = netDistributable * 0.20;
     const performancePool = netDistributable * 0.80;
@@ -91,6 +105,7 @@ export const calculateFinancials = async (projectId: string) => {
     });
 
     // Create or update financial record
+    // We'll use upsert if possible, or just create a new one as a snapshot
     const financial = await prisma.financial.create({
         data: {
             projectId,
