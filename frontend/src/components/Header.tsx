@@ -6,7 +6,7 @@ import { Bell, Search, User } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Header() {
-    const pathname = usePathname();
+    const pathname = usePathname() || '';
     const segments = pathname.split('/').filter(Boolean);
 
     const breadcrumbs = segments.map((segment, index) => {
