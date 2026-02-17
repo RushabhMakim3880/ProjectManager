@@ -99,6 +99,9 @@ export const getProjects = async (req: Request, res: Response) => {
         const projects = await prisma.project.findMany({
             include: {
                 _count: { select: { tasks: true } },
+                contributions: {
+                    include: { partner: { include: { user: true } } }
+                }
             },
         });
         res.json(projects);

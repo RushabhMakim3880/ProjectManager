@@ -120,8 +120,8 @@ export default function ProjectsPage() {
                             <div className="p-6 flex-1">
                                 <div className="flex items-start justify-between mb-4">
                                     <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${project.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
-                                            project.status === 'PLANNED' ? 'bg-indigo-500/10 text-indigo-400' :
-                                                'bg-rose-500/10 text-rose-400'
+                                        project.status === 'PLANNED' ? 'bg-indigo-500/10 text-indigo-400' :
+                                            'bg-rose-500/10 text-rose-400'
                                         }`}>
                                         {project.status}
                                     </div>
@@ -178,11 +178,16 @@ export default function ProjectsPage() {
                                     </span>
                                 </div>
                                 <div className="flex -space-x-2">
-                                    {[1, 2, 3].map((_, i) => (
-                                        <div key={i} className="w-7 h-7 rounded-full border-2 border-neutral-900 bg-neutral-800 overflow-hidden ring-2 ring-indigo-500/10">
-                                            <img src={`https://i.pravatar.cc/150?u=${i + project.id}`} alt="Team" className="w-full h-full object-cover grayscale opacity-80" />
+                                    {(project.contributions || []).slice(0, 3).map((c: any, i: number) => (
+                                        <div key={i} className="w-8 h-8 rounded-full border-2 border-neutral-900 bg-neutral-800 flex items-center justify-center text-[10px] font-bold text-indigo-400 ring-2 ring-indigo-500/10" title={c.partner?.user?.name}>
+                                            {c.partner?.user?.name?.charAt(0) || '?'}
                                         </div>
                                     ))}
+                                    {(project.contributions?.length > 3) && (
+                                        <div className="w-8 h-8 rounded-full border-2 border-neutral-900 bg-neutral-900 flex items-center justify-center text-[10px] font-bold text-neutral-500 ring-1 ring-white/5">
+                                            +{project.contributions.length - 3}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
