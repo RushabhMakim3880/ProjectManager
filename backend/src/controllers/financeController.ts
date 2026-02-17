@@ -145,3 +145,28 @@ export const injectCapital = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to inject capital' });
     }
 };
+// ... existing code ...
+console.error('Error injecting capital:', error);
+res.status(500).json({ error: 'Failed to inject capital' });
+    }
+};
+
+// Get All Transactions (Global Ledger)
+export const getAllTransactions = async (req: Request, res: Response) => {
+    try {
+        const transactions = await prisma.transaction.findMany({
+            orderBy: { date: 'desc' },
+            include: {
+                project: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        });
+        res.json(transactions);
+    } catch (error) {
+        console.error('Error fetching all transactions:', error);
+        res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+};

@@ -1,240 +1,154 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import {
-    TrendingUp,
-    TrendingDown,
-    Wallet,
-    DollarSign,
-    PieChart,
-    Download,
-    Plus,
-    Building2,
-    Users
-} from 'lucide-react';
-import api from '@/lib/api';
-import CapitalInjectionModal from '@/components/CapitalInjectionModal';
-
-interface EquityItem {
-    id: string;
-    name: string;
-    equity: number;
-    totalContributed: number;
-}
-
-interface FinancialData {
-    financials: {
-        totalRevenue: number;
-        totalExpenses: number;
-        netProfit: number;
-        totalProjectValue: number;
-    };
-    projects: {
-        total: number;
-        active: number;
-        completed: number;
-    };
-    equity: EquityItem[];
-}
+import { useEffect, useState } from 'react';
+import { fetchCompanySummary, fetchTransactions, FinancialSummary, Transaction } from '@/lib/api';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
 
 export default function FinancialsPage() {
-    const [data, setData] = useState<FinancialData | null>(null);
+    const [summary, setSummary] = useState<FinancialSummary | null>(null);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isInjectionModalOpen, setIsInjectionModalOpen] = useState(false);
-    const [currentUserId, setCurrentUserId] = useState<string>('');
 
-    // Fetch user ID deeply for the modal (In a real app, use AuthContext)
     useEffect(() => {
-        const fetchMe = async () => {
+        const loadData = async () => {
             try {
-                const res = await api.get('/auth/me');
-                setCurrentUserId(res.data.id); // Assuming /auth/me returns the partner ID or user ID linked to partner
-            } catch (e) {
-                console.error("Failed to fetch user", e);
+                const [summaryData, transactionsData] = await Promise.all([
+                    fetchCompanySummary(),
+                    fetchTransactions()
+                ]);
+                setSummary(summaryData);
+                setTransactions(transactionsData);
+            } catch (error) {
+                console.error("Failed to fetch financial data", error);
+            } finally {
+                setLoading(false);
             }
         };
-        fetchMe();
-    }, []);
-
-    const fetchFinancials = async () => {
-        setLoading(true);
-        try {
-            const res = await api.get('/finance/company-summary');
-            setData(res.data);
-        } catch (err) {
-            console.error("Financials fetch error", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchFinancials();
+        loadData();
     }, []);
 
     if (loading) {
-        return <div className="p-8 text-center text-neutral-500">Loading financial intelligence...</div>;
+        return <FinancialsSkeleton />;
     }
 
-    if (!data) {
-        return <div className="p-8 text-center text-rose-500">Failed to load financial data.</div>;
-    }
+    if (!summary) return <div>Failed to load data</div>;
 
     return (
-        <div className="space-y-8 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-white mb-1">Company Finance</h1>
-                    <p className="text-neutral-400 text-sm">Aggregated financial performance and equity distribution.</p>
-                </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => setIsInjectionModalOpen(true)}
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <Plus className="w-4 h-4" /> Inject Capital
-                    </button>
-                    <button className="btn-outline flex items-center gap-2">
-                        <Download className="w-4 h-4" /> Export Report
-                    </button>
-                </div>
+        <div className="space-y-6 animate-in fade-in duration-500">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Financial Intelligence</h1>
+                <p className="text-muted-foreground">Real-time financial overview and general ledger.</p>
             </div>
 
-            {/* Key Metrics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500">
-                            <TrendingUp className="w-5 h-5" />
+            <div className="grid gap-4 md:grid-cols-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">₹{summary.financials.totalRevenue.toLocaleString()}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                        <TrendingDown className="h-4 w-4 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">₹{summary.financials.totalExpenses.toLocaleString()}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+                        <DollarSign className="h-4 w-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`text-2xl font-bold ${summary.financials.netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            ₹{summary.financials.netProfit.toLocaleString()}
                         </div>
-                        <span className="text-xs font-semibold text-emerald-500 uppercase tracking-wide">Revenue</span>
-                    </div>
-                    <p className="text-sm text-neutral-500">Total Income</p>
-                    <h3 className="text-2xl font-bold text-white">₹{data.financials.totalRevenue.toLocaleString()}</h3>
-                </div>
-
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="p-2 bg-rose-500/10 rounded-lg text-rose-500">
-                            <TrendingDown className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs font-semibold text-rose-500 uppercase tracking-wide">Expenses</span>
-                    </div>
-                    <p className="text-sm text-neutral-500">Total Spent</p>
-                    <h3 className="text-2xl font-bold text-white">₹{data.financials.totalExpenses.toLocaleString()}</h3>
-                </div>
-
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-500">
-                            <Wallet className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs font-semibold text-indigo-500 uppercase tracking-wide">Net Profit</span>
-                    </div>
-                    <p className="text-sm text-neutral-500">Distributable</p>
-                    <h3 className="text-2xl font-bold text-white">₹{data.financials.netProfit.toLocaleString()}</h3>
-                </div>
-
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
-                            <Building2 className="w-5 h-5" />
-                        </div>
-                        <span className="text-xs font-semibold text-amber-500 uppercase tracking-wide">Projects</span>
-                    </div>
-                    <p className="text-sm text-neutral-500">Total Value</p>
-                    <h3 className="text-2xl font-bold text-white">₹{data.financials.totalProjectValue.toLocaleString()}</h3>
-                </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Project Value</CardTitle>
+                        <Wallet className="h-4 w-4 text-purple-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">₹{summary.financials.totalProjectValue.toLocaleString()}</div>
+                    </CardContent>
+                </Card>
             </div>
 
-            {/* Equity & Projects Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Equity Table */}
-                <div className="lg:col-span-2 bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
-                    <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
-                        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Users className="w-5 h-5 text-indigo-500" />
-                            Partner Equity & Contribution
-                        </h2>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-neutral-950/50 text-xs text-neutral-400 font-semibold uppercase tracking-wider">
-                                <tr>
-                                    <th className="p-4">Partner</th>
-                                    <th className="p-4 text-right">Total Capital</th>
-                                    <th className="p-4 text-right">Equity Share</th>
-                                    <th className="p-4 text-right">Valuation (Est)</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-neutral-800">
-                                {data.equity.map((partner) => (
-                                    <tr key={partner.id} className="hover:bg-neutral-800/30 transition-colors">
-                                        <td className="p-4 font-medium text-white">{partner.name}</td>
-                                        <td className="p-4 text-right text-neutral-300">₹{partner.totalContributed.toLocaleString()}</td>
-                                        <td className="p-4 text-right">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                                                {partner.equity.toFixed(2)}%
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-right font-bold text-emerald-400">
-                                            ₹{((data.financials.netProfit * partner.equity) / 100).toLocaleString()}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* Project Status Overview */}
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                    <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                        <PieChart className="w-5 h-5 text-amber-500" />
-                        Project Status
-                    </h2>
-                    <div className="space-y-6">
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-neutral-400">Active Projects</span>
-                                <span className="text-white font-medium">{data.projects.active}</span>
-                            </div>
-                            <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-emerald-500"
-                                    style={{ width: `${(data.projects.active / data.projects.total) * 100}%` }}
-                                />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-neutral-400">Completed</span>
-                                <span className="text-white font-medium">{data.projects.completed}</span>
-                            </div>
-                            <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-indigo-500"
-                                    style={{ width: `${(data.projects.completed / data.projects.total) * 100}%` }}
-                                />
-                            </div>
-                        </div>
-                        <div className="pt-4 border-t border-neutral-800">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-neutral-400">Total Projects</span>
-                                <span className="text-white font-bold">{data.projects.total}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <CapitalInjectionModal
-                isOpen={isInjectionModalOpen}
-                onClose={() => setIsInjectionModalOpen(false)}
-                onSuccess={fetchFinancials}
-                currentUserId={currentUserId}
-            />
+            <Card>
+                <CardHeader>
+                    <CardTitle>General Ledger</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Project</TableHead>
+                                <TableHead>Category</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {transactions.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                        No transactions recorded.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                transactions.map((t) => (
+                                    <TableRow key={t.id}>
+                                        <TableCell>{new Date(t.date).toLocaleDateString()}</TableCell>
+                                        <TableCell>{t.description || 'N/A'}</TableCell>
+                                        <TableCell>{t.project?.name || 'Unknown'}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">{t.category || 'General'}</Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={t.type === 'INCOME' ? 'default' : 'destructive'}>
+                                                {t.type}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className={`text-right font-medium ${t.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}`}>
+                                            {t.type === 'INCOME' ? '+' : '-'}₹{t.amount.toLocaleString()}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </div>
     );
+}
+
+function FinancialsSkeleton() {
+    return (
+        <div className="space-y-6">
+            <div className="space-y-2">
+                <Skeleton className="h-8 w-64" />
+                <Skeleton className="h-4 w-96" />
+            </div>
+            <div className="grid gap-4 md:grid-cols-4">
+                {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-32" />
+                ))}
+            </div>
+            <Skeleton className="h-96 w-full" />
+        </div>
+    )
 }

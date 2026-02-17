@@ -1,219 +1,159 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { fetchProjects, ProjectSummary } from '@/lib/api';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-    Plus, Search, Filter, Calendar,
-    IndianRupee, Briefcase, ChevronRight, BarChart3,
-    Clock, Trash2, Edit3, AlertCircle
-} from 'lucide-react';
-import Link from 'next/link';
-import CreateProjectModal from '@/components/CreateProjectModal';
-import api from '@/lib/api';
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MoreHorizontal, Plus, Search, Filter } from 'lucide-react';
 
 export default function ProjectsPage() {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [projects, setProjects] = useState<any[]>([]);
+    const router = useRouter();
+    const [projects, setProjects] = useState<ProjectSummary[]>([]);
     const [loading, setLoading] = useState(true);
-    const [editingProject, setEditingProject] = useState<any>(null);
-
-    const fetchProjects = async () => {
-        setLoading(true);
-        try {
-            const res = await api.get('/projects');
-            setProjects(res.data);
-        } catch (err) {
-            console.error("Failed to fetch projects", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [search, setSearch] = useState('');
 
     useEffect(() => {
-        fetchProjects();
+        const loadProjects = async () => {
+            try {
+                const data = await fetchProjects();
+                setProjects(data);
+            } catch (error) {
+                console.error("Failed to fetch projects", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadProjects();
     }, []);
 
-    const handleDelete = async (id: string, name: string) => {
-        if (window.confirm(`Are you sure you want to delete project "${name}"? This action is irreversible.`)) {
-            try {
-                await api.delete(`/projects/${id}`);
-                fetchProjects();
-            } catch (err) {
-                console.error("Delete failed", err);
-                alert("Failed to delete project. Please try again.");
-            }
-        }
-    };
-
-    const filteredProjects = projects.filter(prj =>
-        prj.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        prj.clientName.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredProjects = projects.filter(project =>
+        project.name.toLowerCase().includes(search.toLowerCase()) ||
+        project.clientName.toLowerCase().includes(search.toLowerCase())
     );
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Project Portfolio</h1>
-                    <p className="text-neutral-500 text-sm mt-1">Manage and track your strategic engagements</p>
-                </div>
-                <button
-                    onClick={() => {
-                        setEditingProject(null);
-                        setShowCreateModal(true);
-                    }}
-                    className="btn-primary flex items-center gap-2 px-6"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>New Project</span>
-                </button>
+        <div className="space-y-6 animate-in fade-in duration-500">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
+                <Button onClick={() => router.push('/dashboard/projects/new')}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Project
+                </Button>
             </div>
 
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {[
-                    { label: 'Active Projects', value: projects.filter(p => p.status === 'ACTIVE').length, icon: Briefcase, color: 'text-indigo-400' },
-                    { label: 'Total Value', value: `₹${(projects.reduce((acc, p) => acc + (p.totalValue || 0), 0) / 100000).toFixed(1)}L`, icon: IndianRupee, color: 'text-emerald-400' },
-                    { label: 'Completion', value: '68%', icon: BarChart3, color: 'text-amber-400' },
-                    { label: 'On Hold', value: projects.filter(p => p.status === 'ON_HOLD').length, icon: Clock, color: 'text-rose-400' },
-                ].map((stat, i) => (
-                    <div key={i} className="glass-card p-6 flex items-center gap-4 group hover:border-white/10 transition-all">
-                        <div className={`p-3 rounded-xl bg-white/5 ${stat.color}`}>
-                            <stat.icon className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">{stat.label}</p>
-                            <p className="text-2xl font-bold text-white mt-0.5">{stat.value}</p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Search & Filter Bar */}
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-                    <input
-                        type="text"
-                        placeholder="Search projects or clients..."
-                        className="w-full bg-neutral-900/50 border border-neutral-800 rounded-xl py-3 pl-12 pr-4 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+            <div className="flex items-center gap-2">
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search projects..."
+                        className="pl-8"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <button className="flex items-center gap-2 px-6 py-3 bg-neutral-900/50 border border-neutral-800 rounded-xl text-neutral-400 hover:text-white transition-all">
+                <Button variant="outline" size="icon">
                     <Filter className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Filter</span>
-                </button>
+                </Button>
             </div>
 
-            {/* Projects Grid */}
-            {loading ? (
-                <div className="flex items-center justify-center py-20">
-                    <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
-                </div>
-            ) : filteredProjects.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredProjects.map((project) => (
-                        <div key={project.id} className="glass-card group hover:border-indigo-500/30 transition-all flex flex-col overflow-hidden">
-                            <div className="p-6 flex-1">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${project.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
-                                        project.status === 'PLANNED' ? 'bg-indigo-500/10 text-indigo-400' :
-                                            'bg-rose-500/10 text-rose-400'
-                                        }`}>
-                                        {project.status}
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={() => {
-                                                setEditingProject(project);
-                                                setShowCreateModal(true);
-                                            }}
-                                            className="p-2 text-neutral-500 hover:text-indigo-400 hover:bg-neutral-800 rounded-lg transition-all"
-                                            title="Edit Project"
-                                        >
-                                            <Edit3 className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(project.id, project.name)}
-                                            className="p-2 text-neutral-500 hover:text-rose-400 hover:bg-neutral-800 rounded-lg transition-all"
-                                            title="Delete Project"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                                <Link href={`/dashboard/projects/${project.id}`}>
-                                    <h3 className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors uppercase tracking-tight">
-                                        {project.name}
-                                    </h3>
-                                    <p className="text-sm text-neutral-500 mt-1 flex items-center gap-1.5 font-medium">
-                                        <AlertCircle className="w-3.5 h-3.5" />
-                                        {project.clientName}
-                                    </p>
-
-                                    <div className="grid grid-cols-2 gap-4 mt-6">
-                                        <div className="p-3 rounded-xl bg-neutral-900/50 border border-neutral-800/50">
-                                            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">Budget</p>
-                                            <p className="text-white font-bold flex items-center">
-                                                <IndianRupee className="w-3 h-3" />
-                                                {(project.totalValue || 0).toLocaleString('en-IN')}
-                                            </p>
+            <div className="rounded-md border bg-card">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Project Name</TableHead>
+                            <TableHead>Client</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Value</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {loading ? (
+                            [...Array(5)].map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                                    <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto rounded-full" /></TableCell>
+                                </TableRow>
+                            ))
+                        ) : filteredProjects.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center">
+                                    No results found.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            filteredProjects.map((project) => (
+                                <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/dashboard/projects/${project.id}`)}>
+                                    <TableCell className="font-medium">{project.name}</TableCell>
+                                    <TableCell>{project.clientName}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={getBadgeVariant(project.status)}>
+                                            {project.status.replace('_', ' ')}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">₹{project.totalValue.toLocaleString()}</TableCell>
+                                    <TableCell className="text-right">
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                        <span className="sr-only">Open menu</span>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/projects/${project.id}`)}>
+                                                        View Details
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem>Edit Settings</DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem className="text-destructive">
+                                                        Delete Project
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
-                                        <div className="p-3 rounded-xl bg-neutral-900/50 border border-neutral-800/50">
-                                            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">Service Type</p>
-                                            <div className="flex flex-col">
-                                                <span className="text-white font-bold text-xs truncate" title={project.projectType}>{project.projectType || 'VAPT'}</span>
-                                                {project.category && (
-                                                    <span className="text-[10px] text-neutral-400 truncate mt-0.5" title={project.category}>{project.category}</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            </div>
-
-                            <div className="px-6 py-4 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-neutral-500">
-                                    <Calendar className="w-3.5 h-3.5" />
-                                    <span className="text-xs font-medium">
-                                        {project.startDate ? new Date(project.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : 'TBD'}
-                                    </span>
-                                </div>
-                                <div className="flex -space-x-2">
-                                    {(project.contributions || []).slice(0, 3).map((c: any, i: number) => (
-                                        <div key={i} className="w-8 h-8 rounded-full border-2 border-neutral-900 bg-neutral-800 flex items-center justify-center text-[10px] font-bold text-indigo-400 ring-2 ring-indigo-500/10" title={c.partner?.user?.name}>
-                                            {c.partner?.user?.name?.charAt(0) || '?'}
-                                        </div>
-                                    ))}
-                                    {(project.contributions?.length > 3) && (
-                                        <div className="w-8 h-8 rounded-full border-2 border-neutral-900 bg-neutral-900 flex items-center justify-center text-[10px] font-bold text-neutral-500 ring-1 ring-white/5">
-                                            +{project.contributions.length - 3}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-20 glass-card">
-                    <p className="text-neutral-500">No projects found matching your search.</p>
-                </div>
-            )}
-
-            {showCreateModal && (
-                <CreateProjectModal
-                    onClose={() => {
-                        setShowCreateModal(false);
-                        setEditingProject(null);
-                        fetchProjects();
-                    }}
-                    initialData={editingProject}
-                />
-            )}
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     );
+}
+
+function getBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+    switch (status) {
+        case 'ACTIVE': return 'default';
+        case 'COMPLETED': return 'secondary';
+        case 'ON_HOLD': return 'outline';
+        case 'CANCELLED': return 'destructive';
+        default: return 'outline';
+    }
 }
