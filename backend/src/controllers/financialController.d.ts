@@ -1,3 +1,3 @@
-import { type Request, type Response } from 'express';
-export declare const recalculateProject: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+import type { Request, Response, NextFunction } from 'express';
+export declare const recalculateProject: (req: Request, res: Response, next: NextFunction) => Promise<void>;
 //# sourceMappingURL=financialController.d.ts.map

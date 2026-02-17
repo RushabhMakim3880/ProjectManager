@@ -1,1 +1,1 @@
-{"version":3,"file":"financialController.d.ts","sourceRoot":"","sources":["financialController.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,KAAK,OAAO,EAAE,KAAK,QAAQ,EAAE,MAAM,SAAS,CAAC;AAGtD,eAAO,MAAM,kBAAkB,GAAU,KAAK,OAAO,EAAE,KAAK,QAAQ,4DAWnE,CAAC"}
+{"version":3,"file":"financialController.d.ts","sourceRoot":"","sources":["financialController.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,OAAO,EAAE,QAAQ,EAAE,YAAY,EAAE,MAAM,SAAS,CAAC;AAK/D,eAAO,MAAM,kBAAkB,GAAU,KAAK,OAAO,EAAE,KAAK,QAAQ,EAAE,MAAM,YAAY,kBAevF,CAAC"}
