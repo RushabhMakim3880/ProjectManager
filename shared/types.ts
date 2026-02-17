@@ -40,6 +40,16 @@ export interface Project {
 
 export type TaskStatus = 'BACKLOG' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
 
+export interface TaskComment {
+    id: string;
+    taskId: string;
+    userId: string;
+    user: User;
+    content: string;
+    type: 'COMMENT' | 'REVIEW';
+    createdAt: Date;
+}
+
 export interface Task {
     id: string;
     projectId: string;
@@ -51,4 +61,8 @@ export interface Task {
     timeSpent: number;
     completionPercent: number;
     status: TaskStatus;
+    completedById?: string;
+    completedBy?: User;
+    completedAt?: Date;
+    comments?: TaskComment[];
 }

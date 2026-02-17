@@ -23,6 +23,8 @@ model User {
   updatedAt     DateTime  @updatedAt
   partnerProfile Partner?
   auditLogs     AuditLog[]
+  completedTasks Task[]    @relation("TaskCompletion")
+  taskComments  TaskComment[]
 }
 
 model Partner {
@@ -218,8 +220,25 @@ model Task {
   timeSpent       Float     @default(0)
   completionPercent Float   @default(0)
   status          String    @default("BACKLOG") // BACKLOG / IN_PROGRESS / REVIEW / DONE
+  
+  completedById   String?
+  completedBy     User?     @relation("TaskCompletion", fields: [completedById], references: [id])
+  completedAt     DateTime?
+
+  comments        TaskComment[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String
+  type      String   @default("COMMENT") // COMMENT / REVIEW
+  createdAt DateTime @default(now())
 }
 
 model Contribution {

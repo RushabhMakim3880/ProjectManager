@@ -45,18 +45,32 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     const { completionPercent, timeSpent, status, name, category, effortWeight, assignedPartnerId } = req.body;
 
     try {
+        const currentTask = await prisma.task.findUnique({ where: { id } });
+        if (!currentTask) return next(new AppError('Task not found', 404));
+
+        const userId = (req as AuthRequest).user?.userId;
+
         // Sync status and completionPercent
         let finalStatus = status;
         let finalPercent = completionPercent;
+        let completedById = currentTask.completedById;
+        let completedAt = currentTask.completedAt;
 
-        if (status === 'DONE') {
+        if (status === 'DONE' && currentTask.status !== 'DONE') {
             finalPercent = 100;
-        } else if (completionPercent === 100 && !status) {
+            completedById = userId;
+            completedAt = new Date();
+        } else if (status && status !== 'DONE' && currentTask.status === 'DONE') {
+            completedById = null;
+            completedAt = null;
+        } else if (completionPercent === 100 && currentTask.status !== 'DONE') {
             finalStatus = 'DONE';
-        } else if (completionPercent === 0 && !status) {
-            finalStatus = 'BACKLOG';
-        } else if (completionPercent > 0 && completionPercent < 100 && !status) {
+            completedById = userId;
+            completedAt = new Date();
+        } else if (completionPercent !== undefined && completionPercent < 100 && currentTask.status === 'DONE') {
             finalStatus = 'IN_PROGRESS';
+            completedById = null;
+            completedAt = null;
         }
 
         const task = await prisma.task.update({
@@ -68,9 +82,15 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
                 assignedPartnerId,
                 completionPercent: finalPercent !== undefined ? Number(finalPercent) : undefined,
                 timeSpent: timeSpent !== undefined ? Number(timeSpent) : undefined,
-                status: finalStatus
+                status: finalStatus,
+                completedById,
+                completedAt
             },
-            include: { project: true },
+            include: {
+                project: true,
+                assignedPartner: { include: { user: true } },
+                completedBy: true
+            },
         });
 
         res.json(task);
@@ -86,6 +106,7 @@ export const getTasksByProject = async (req: Request, res: Response, next: NextF
             where: { projectId },
             include: {
                 assignedPartner: { include: { user: true } },
+                completedBy: true
             },
             orderBy: { createdAt: 'desc' }
         });
@@ -102,6 +123,48 @@ export const deleteTask = async (req: Request, res: Response, next: NextFunction
             where: { id },
         });
         res.json({ message: 'Task deleted successfully' });
+    } catch (error: any) {
+        next(error);
+    }
+};
+
+export const addTaskComment = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { id: taskId } = req.params;
+    const { content, type } = req.body;
+    const userId = req.user?.userId;
+
+    try {
+        if (!userId) return next(new AppError('Unauthorized', 401));
+
+        const comment = await prisma.taskComment.create({
+            data: {
+                taskId,
+                userId,
+                content,
+                type: type || 'COMMENT'
+            },
+            include: {
+                user: true
+            }
+        });
+
+        res.status(201).json(comment);
+    } catch (error: any) {
+        next(error);
+    }
+};
+
+export const getTaskComments = async (req: Request, res: Response, next: NextFunction) => {
+    const { id: taskId } = req.params;
+    try {
+        const comments = await prisma.taskComment.findMany({
+            where: { taskId },
+            include: {
+                user: true
+            },
+            orderBy: { createdAt: 'asc' }
+        });
+        res.json(comments);
     } catch (error: any) {
         next(error);
     }
