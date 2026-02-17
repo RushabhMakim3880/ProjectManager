@@ -90,39 +90,43 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ tasks, onTaskUpdate, pro
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
-                                            draggable
-                                            onDragStart={(e) => handleDragStart(e, task.id)}
-                                            className="glass-card !p-3 cursor-grab active:cursor-grabbing group relative overflow-hidden"
+                                            className="group relative"
                                         >
-                                            {/* Accent line */}
-                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${column.bg.replace('/10', '')}`} />
+                                            <div
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, task.id)}
+                                                className="glass-card !p-3 cursor-grab active:cursor-grabbing relative overflow-hidden h-full"
+                                            >
+                                                {/* Accent line */}
+                                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${column.bg.replace('/10', '')}`} />
 
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex items-start justify-between">
-                                                    <span className="text-[10px] font-bold uppercase text-neutral-600 bg-neutral-950 px-2 py-0.5 rounded-lg border border-neutral-800">
-                                                        {task.category}
-                                                    </span>
-                                                    <button className="text-neutral-600 hover:text-white transition-colors">
-                                                        <MoreVertical className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
-
-                                                <h4 className="text-sm font-bold text-neutral-200 line-clamp-2 uppercase">
-                                                    {task.name}
-                                                </h4>
-
-                                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-neutral-800/50">
-                                                    <div className="flex items-center gap-2 text-neutral-500">
-                                                        <User className="w-3 h-3" />
-                                                        <span className="text-[10px] font-medium">
-                                                            {task.assignedPartner?.user.name || 'Unassigned'}
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="flex items-start justify-between">
+                                                        <span className="text-[10px] font-bold uppercase text-neutral-600 bg-neutral-950 px-2 py-0.5 rounded-lg border border-neutral-800">
+                                                            {task.category}
                                                         </span>
+                                                        <button className="text-neutral-600 hover:text-white transition-colors">
+                                                            <MoreVertical className="w-3.5 h-3.5" />
+                                                        </button>
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 bg-neutral-950 px-2 py-1 rounded-lg border border-neutral-800">
-                                                        <Clock className="w-2.5 h-2.5 text-indigo-500" />
-                                                        <span className="text-[10px] font-bold text-indigo-300">
-                                                            {task.completionPercent}%
-                                                        </span>
+
+                                                    <h4 className="text-sm font-bold text-neutral-200 line-clamp-2 uppercase">
+                                                        {task.name}
+                                                    </h4>
+
+                                                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-neutral-800/50">
+                                                        <div className="flex items-center gap-2 text-neutral-500">
+                                                            <User className="w-3 h-3" />
+                                                            <span className="text-[10px] font-medium">
+                                                                {task.assignedPartner?.user.name || 'Unassigned'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 bg-neutral-950 px-2 py-1 rounded-lg border border-neutral-800">
+                                                            <Clock className="w-2.5 h-2.5 text-indigo-500" />
+                                                            <span className="text-[10px] font-bold text-indigo-300">
+                                                                {task.completionPercent}%
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
