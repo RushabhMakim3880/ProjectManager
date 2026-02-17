@@ -189,6 +189,7 @@ model Transaction {
   amount        Float
   date          DateTime @default(now())
   type          String   // INCOME / EXPENSE
+  category      String?  // BUSINESS_GROWTH / RELIGIOUS / CHARITY / OTHER / GENERAL
   method        String   // UPI / Card / Bank / Cash / Other
   transactionId String?  // Optional reference number
   description   String?

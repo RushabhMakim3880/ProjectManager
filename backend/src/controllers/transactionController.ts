@@ -17,13 +17,14 @@ export const getTransactions = async (req: Request, res: Response) => {
 };
 
 export const createTransaction = async (req: AuthRequest, res: Response) => {
-    const { projectId, amount, type, method, transactionId, description, date } = req.body;
+    const { projectId, amount, type, category, method, transactionId, description, date } = req.body;
     try {
         const transaction = await prisma.transaction.create({
             data: {
                 projectId,
                 amount: parseFloat(amount),
                 type,
+                category,
                 method,
                 transactionId,
                 description,

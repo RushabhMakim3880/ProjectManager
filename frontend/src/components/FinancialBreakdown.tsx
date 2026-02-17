@@ -19,6 +19,16 @@ export default function FinancialBreakdown({ project }: FinancialBreakdownProps)
         .filter((t: any) => t.type === 'EXPENSE')
         .reduce((sum: number, t: any) => sum + t.amount, 0);
 
+    const religiousSpent = transactions
+        .filter((t: any) => t.type === 'EXPENSE' && t.category === 'RELIGIOUS')
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+    const charitySpent = transactions
+        .filter((t: any) => t.type === 'EXPENSE' && t.category === 'CHARITY')
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+    const totalFaithSpent = religiousSpent + charitySpent;
+
     const actualBalance = totalIncome - totalExpenses; // Used as GPR
 
     // Constants to match deterministic backend logic
@@ -131,25 +141,54 @@ export default function FinancialBreakdown({ project }: FinancialBreakdownProps)
                 </div>
 
                 {/* Reserves Summary Card */}
-                <div className="glass-card p-6 bg-neutral-950/20 flex flex-col justify-between">
+                <div className="glass-card p-6 bg-neutral-950/20 flex flex-col justify-between border-rose-500/10">
                     <div>
                         <h4 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-rose-500/50" /> Fixed Reserves
+                            <Shield className="w-4 h-4 text-rose-500/50" /> Strategic Reserves
                         </h4>
                         <div className="space-y-4">
                             <div className="flex justify-between items-end border-b border-neutral-800 pb-3">
-                                <span className="text-xs text-neutral-400 font-bold">Business Growth (10%)</span>
+                                <div>
+                                    <span className="text-xs text-neutral-400 font-bold block">Business Growth (10%)</span>
+                                    <span className="text-[10px] text-neutral-600 uppercase tracking-widest italic font-medium">Reinvestment Capital</span>
+                                </div>
                                 <span className="text-sm font-black text-white">₹{businessGrowth.toLocaleString()}</span>
                             </div>
-                            <div className="flex justify-between items-end border-b border-neutral-800 pb-3">
-                                <span className="text-xs text-neutral-400 font-bold">Religious/Charity (5%)</span>
-                                <span className="text-sm font-black text-white">₹{religiousAllocation.toLocaleString()}</span>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-end border-b border-neutral-800 pb-3">
+                                    <div>
+                                        <span className="text-xs text-neutral-400 font-bold block">Religious/Charity (5%)</span>
+                                        <span className="text-[10px] text-neutral-600 uppercase tracking-widest italic font-medium">Mandatory Dist. Buffer</span>
+                                    </div>
+                                    <span className="text-sm font-black text-rose-400">₹{religiousAllocation.toLocaleString()}</span>
+                                </div>
+
+                                <div className={`p-3 rounded-xl border ${totalFaithSpent > religiousAllocation ? 'bg-amber-500/10 border-amber-500/20' : 'bg-neutral-900/50 border-neutral-800'}`}>
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <span className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Realized Spending</span>
+                                        <span className={`text-[10px] font-black ${totalFaithSpent > religiousAllocation ? 'text-amber-400' : 'text-neutral-400'}`}>
+                                            ₹{totalFaithSpent.toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <div className="h-1 w-full bg-neutral-800 rounded-full overflow-hidden mb-2">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${Math.min((totalFaithSpent / religiousAllocation) * 100, 100)}%` }}
+                                            className={`h-full ${totalFaithSpent > religiousAllocation ? 'bg-amber-500' : 'bg-neutral-600'}`}
+                                        />
+                                    </div>
+                                    {totalFaithSpent > religiousAllocation && (
+                                        <div className="flex items-center gap-1.5 text-[8px] font-black text-amber-500 uppercase tracking-tighter">
+                                            <Scale className="w-2.5 h-2.5" /> Over-Allocated: ₹{(totalFaithSpent - religiousAllocation).toLocaleString()}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className="mt-8 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                        <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Audit Verification</p>
-                        <p className="text-[10px] text-neutral-500 leading-tight">These funds are automatically allocated before any partner distribution to ensure system longevity.</p>
+                    <div className="mt-8 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 transition-all cursor-default">
+                        <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Algorithmic Integrity</p>
+                        <p className="text-[10px] text-neutral-500 leading-tight">Reserves are mathematically locked before pool splitting to maintain deterministic financial hygiene.</p>
                     </div>
                 </div>
             </div>

@@ -195,295 +195,317 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Layout className="w-5 h-5 text-indigo-400" />
-                    Project Task Backlog
-                </h3>
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter italic">
+                        <Layout className="w-5 h-5 text-indigo-500" />
+                        Technical Execution Matrix
+                    </h3>
+                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-[0.2em] mt-1 ml-8">Scope Management & Resource Allocation</p>
+                </div>
                 <button
                     onClick={() => setIsCreating(true)}
-                    className="btn-primary flex items-center gap-2 px-4 py-2 text-sm"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(255,255,255,0.1)]"
                 >
-                    <Plus className="w-4 h-4" /> Add Task
+                    <Plus className="w-4 h-4" /> Initialize Task
                 </button>
             </div>
 
             {isCreating && (
-                <div className="glass-card p-6 border-indigo-500/30 animate-in slide-in-from-top-2 duration-300">
-                    <form onSubmit={handleCreateTask} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="md:col-span-2">
-                            <label className="text-xs font-bold text-neutral-500 uppercase mb-2 block">Task Name</label>
-                            <input
-                                type="text"
-                                required
-                                value={newTask.name}
-                                onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
-                                className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 transition-all outline-none"
-                                placeholder="e.g. Implement Auth Flow"
-                            />
+                <div className="glass-card p-8 border-indigo-500/30 bg-indigo-500/5 animate-in slide-in-from-top-4 duration-500 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
+                        <Plus className="w-48 h-48" />
+                    </div>
+                    <form onSubmit={handleCreateTask} className="relative z-10 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Task Definition</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={newTask.name}
+                                    onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
+                                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-5 py-3 text-sm text-white focus:border-indigo-500 transition-all outline-none placeholder:text-neutral-700 font-bold"
+                                    placeholder="Define the technical objective..."
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Classification</label>
+                                    <select
+                                        value={newTask.category}
+                                        onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
+                                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-5 py-3 text-sm text-white focus:border-indigo-500 transition-all outline-none capitalize font-bold appearance-none"
+                                    >
+                                        {categories.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Effort Matrix (1-10)</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="1"
+                                        max="100"
+                                        value={newTask.effortWeight}
+                                        onChange={(e) => setNewTask({ ...newTask, effortWeight: Number(e.target.value) })}
+                                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-5 py-3 text-sm text-white focus:border-indigo-500 transition-all outline-none font-bold"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label className="text-xs font-bold text-neutral-500 uppercase mb-2 block">Category</label>
-                            <select
-                                value={newTask.category}
-                                onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
-                                className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 transition-all outline-none capitalize"
-                            >
-                                {categories.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-neutral-500 uppercase mb-2 block">Effort (1-10)</label>
-                            <input
-                                type="number"
-                                required
-                                min="1"
-                                max="100"
-                                value={newTask.effortWeight}
-                                onChange={(e) => setNewTask({ ...newTask, effortWeight: Number(e.target.value) })}
-                                className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 transition-all outline-none"
-                            />
-                        </div>
-                        <div className="md:col-span-3">
-                            <label className="text-xs font-bold text-neutral-500 uppercase mb-2 block">Assign To</label>
-                            <select
-                                value={newTask.assignedPartnerId}
-                                onChange={(e) => setNewTask({ ...newTask, assignedPartnerId: e.target.value })}
-                                className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 transition-all outline-none"
-                            >
-                                <option value="">Select Partner</option>
-                                {partners.map(p => (
-                                    <option key={p.id} value={p.id}>{p.user.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="flex items-end gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setIsCreating(false)}
-                                className="flex-1 btn-outline py-2.5 text-sm"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                className="flex-1 btn-primary py-2.5 text-sm overflow-hidden"
-                            >
-                                Save Task
-                            </button>
+                        <div className="flex flex-col md:flex-row gap-6">
+                            <div className="flex-1 space-y-1.5">
+                                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Lead Assignment</label>
+                                <select
+                                    value={newTask.assignedPartnerId}
+                                    onChange={(e) => setNewTask({ ...newTask, assignedPartnerId: e.target.value })}
+                                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-5 py-3 text-sm text-white focus:border-indigo-500 transition-all outline-none font-bold appearance-none"
+                                >
+                                    <option value="">Select Operational Partner</option>
+                                    {partners.map(p => (
+                                        <option key={p.id} value={p.id}>{p.user.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex items-end gap-3 md:w-80">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCreating(false)}
+                                    className="flex-1 px-5 py-3 rounded-xl bg-neutral-900 border border-neutral-800 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-white transition-all"
+                                >
+                                    Abort
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-5 py-3 rounded-xl bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)]"
+                                >
+                                    Commit Task
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
             )}
 
-            <div className="glass-card overflow-hidden">
-                <div className="divide-y divide-neutral-800">
-                    {tasks.length > 0 ? tasks.map((task) => (
-                        <div key={task.id} className={`transition-all duration-300 ${expandedTaskId === task.id ? 'bg-neutral-900/50' : 'hover:bg-neutral-800/10'}`}>
-                            {/* Task Row */}
-                            <div
-                                onClick={() => handleTaskClick(task.id)}
-                                className={`p-4 group cursor-pointer border-l-2 flex flex-col gap-3 ${expandedTaskId === task.id ? 'border-l-indigo-500' : 'border-l-transparent'}`}
+            <div className="glass-card overflow-hidden bg-neutral-900/20 border-neutral-800/50">
+                <div className="divide-y divide-neutral-800/50">
+                    {tasks.length > 0 ? (
+                        tasks.map((task, idx) => (
+                            <motion.div
+                                key={task.id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.05 }}
+                                className={`transition-all duration-300 ${expandedTaskId === task.id ? 'bg-indigo-500/[0.03]' : 'hover:bg-neutral-800/20'}`}
                             >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-lg ${task.completionPercent === 100 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-indigo-500/10 text-indigo-400'}`}>
-                                            <CheckCircle2 className="w-4 h-4" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-white leading-tight">{task.name}</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-500 uppercase">{task.category}</span>
-                                                <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1">
-                                                    <Clock className="w-3 h-3" /> Effort: {task.effortWeight}
-                                                </span>
+                                {/* Task Row */}
+                                <div
+                                    onClick={() => handleTaskClick(task.id)}
+                                    className={`p-5 group cursor-pointer border-l-4 flex flex-col gap-4 ${expandedTaskId === task.id ? 'border-l-indigo-500' : 'border-l-transparent'}`}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-5">
+                                            <div className={`p-2.5 rounded-xl border-2 transition-all group-hover:scale-110 ${task.completionPercent === 100 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'}`}>
+                                                <CheckCircle2 className="w-5 h-5 shadow-[0_0_10px_currentColor]" />
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-bold text-neutral-500 uppercase mb-0.5">Assigned To</p>
-                                            <div className="flex items-center gap-1.5 justify-end">
-                                                <div className="w-5 h-5 rounded-full bg-neutral-800 flex items-center justify-center border border-neutral-700">
-                                                    <UserPlus className="w-3 h-3 text-neutral-500" />
+                                            <div>
+                                                <p className="text-base font-black text-white leading-none tracking-tight">{task.name}</p>
+                                                <div className="flex items-center gap-3 mt-2">
+                                                    <span className="text-[9px] font-black px-2 py-0.5 rounded bg-neutral-950 text-neutral-500 uppercase tracking-widest border border-neutral-800">{task.category}</span>
+                                                    <span className="text-[9px] font-black text-indigo-400 flex items-center gap-1.5 uppercase tracking-widest italic">
+                                                        <Clock className="w-3 h-3" /> Effort Index: {task.effortWeight}
+                                                    </span>
                                                 </div>
-                                                <span className="text-xs font-medium text-white">{task.assignedPartner?.user?.name || 'Unassigned'}</span>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
-                                            className="p-2 text-neutral-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-4">
-                                    <div className="flex-1 h-1 bg-neutral-800 rounded-full overflow-hidden">
-                                        <div
-                                            className={`h-full transition-all duration-500 ${task.completionPercent === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
-                                            style={{ width: `${task.completionPercent}%` }}
-                                        />
-                                    </div>
-                                    <select
-                                        value={task.completionPercent}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onChange={(e) => handleUpdateProgress(task.id, Number(e.target.value))}
-                                        className="bg-transparent text-[10px] font-bold text-neutral-400 outline-none hover:text-white transition-colors"
-                                    >
-                                        <option value="0">0%</option>
-                                        <option value="25">25%</option>
-                                        <option value="50">50%</option>
-                                        <option value="75">75%</option>
-                                        <option value="100">100%</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Expanded Details Layer */}
-                            <AnimatePresence>
-                                {expandedTaskId === task.id && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        className="overflow-hidden border-t border-neutral-800 bg-neutral-950/40"
-                                    >
-                                        <div className="p-6 space-y-6">
-                                            {/* Completion Info */}
-                                            {task.status === 'DONE' && (
-                                                <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-4">
-                                                    <div className="p-2 rounded-lg bg-emerald-500/10">
-                                                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                        <div className="flex items-center gap-6">
+                                            <div className="text-right">
+                                                <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mb-1.5">Asset Assigned</p>
+                                                <div className="flex items-center gap-2 justify-end">
+                                                    <div className="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-black text-[10px] text-indigo-400">
+                                                        {task.assignedPartner?.user?.name?.charAt(0) || <User className="w-3 h-3" />}
                                                     </div>
-                                                    <div>
-                                                        <p className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest leading-none mb-1">Completed By</p>
-                                                        <p className="text-sm font-bold text-emerald-400">{task.completedBy?.name || 'System User'}</p>
-                                                        {task.completedAt && (
-                                                            <p className="text-[9px] text-neutral-500 font-medium">
-                                                                {new Date(task.completedAt).toLocaleString()}
-                                                            </p>
+                                                    <span className="text-xs font-black text-neutral-300 tracking-tight">{task.assignedPartner?.user?.name || 'Open Pool'}</span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
+                                                className="p-2.5 text-neutral-700 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-rose-500/20"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 px-2">
+                                        <div className="flex-1 h-1.5 bg-neutral-950 rounded-full overflow-hidden border border-neutral-800">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${task.completionPercent}%` }}
+                                                className={`h-full transition-all duration-700 shadow-[0_0_15px_rgba(99,102,241,0.3)] ${task.completionPercent === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                                            />
+                                        </div>
+                                        <div className="relative">
+                                            <select
+                                                value={task.completionPercent}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onChange={(e) => handleUpdateProgress(task.id, Number(e.target.value))}
+                                                className="bg-neutral-950 border border-neutral-800 rounded px-2 py-0.5 text-[10px] font-black text-indigo-400 outline-none hover:border-indigo-500/50 transition-all cursor-pointer appearance-none text-center min-w-[40px]"
+                                            >
+                                                <option value="0">0%</option>
+                                                <option value="25">25%</option>
+                                                <option value="50">50%</option>
+                                                <option value="75">75%</option>
+                                                <option value="100">100%</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Expanded Details Layer */}
+                                <AnimatePresence>
+                                    {expandedTaskId === task.id && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            className="overflow-hidden border-t border-neutral-800 bg-neutral-950/40"
+                                        >
+                                            <div className="p-6 space-y-6">
+                                                {/* Completion Info */}
+                                                {task.status === 'DONE' && (
+                                                    <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-4">
+                                                        <div className="p-2 rounded-lg bg-emerald-500/10">
+                                                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest leading-none mb-1">Completed By</p>
+                                                            <p className="text-sm font-bold text-emerald-400">{task.completedBy?.name || 'System User'}</p>
+                                                            {task.completedAt && (
+                                                                <p className="text-[9px] text-neutral-500 font-medium">
+                                                                    {new Date(task.completedAt).toLocaleString()}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Comments Section */}
+                                                <div className="space-y-4">
+                                                    <h4 className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                                                        <MessageSquare className="w-3.5 h-3.5" />
+                                                        Activity & Reviews
+                                                    </h4>
+
+                                                    <div className="space-y-3">
+                                                        {loadingComments ? (
+                                                            <div className="py-4 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-neutral-500" /></div>
+                                                        ) : comments.length === 0 ? (
+                                                            <p className="text-xs text-neutral-600 italic px-2">No activity recorded for this task.</p>
+                                                        ) : (
+                                                            comments.map(c => (
+                                                                <div key={c.id} className={`p-3 rounded-xl border ${c.type === 'REVIEW' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-neutral-900 border-neutral-800'}`}>
+                                                                    <div className="flex items-center justify-between mb-1">
+                                                                        <span className="text-[10px] font-bold text-indigo-400">{c.user.name}</span>
+                                                                        <span className="text-[9px] text-neutral-600">{new Date(c.createdAt).toLocaleDateString()}</span>
+                                                                    </div>
+                                                                    <p className="text-xs text-neutral-400 leading-relaxed">{c.content}</p>
+                                                                </div>
+                                                            ))
                                                         )}
                                                     </div>
-                                                </div>
-                                            )}
 
-                                            {/* Comments Section */}
-                                            <div className="space-y-4">
-                                                <h4 className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                                                    <MessageSquare className="w-3.5 h-3.5" />
-                                                    Activity & Reviews
-                                                </h4>
-
-                                                <div className="space-y-3">
-                                                    {loadingComments ? (
-                                                        <div className="py-4 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-neutral-500" /></div>
-                                                    ) : comments.length === 0 ? (
-                                                        <p className="text-xs text-neutral-600 italic px-2">No activity recorded for this task.</p>
-                                                    ) : (
-                                                        comments.map(c => (
-                                                            <div key={c.id} className={`p-3 rounded-xl border ${c.type === 'REVIEW' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-neutral-900 border-neutral-800'}`}>
-                                                                <div className="flex items-center justify-between mb-1">
-                                                                    <span className="text-[10px] font-bold text-indigo-400">{c.user.name}</span>
-                                                                    <span className="text-[9px] text-neutral-600">{new Date(c.createdAt).toLocaleDateString()}</span>
-                                                                </div>
-                                                                <p className="text-xs text-neutral-400 leading-relaxed">{c.content}</p>
-                                                            </div>
-                                                        ))
-                                                    )}
-                                                </div>
-
-                                                <div className="mt-4 flex flex-col gap-3">
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => setCommentType('COMMENT')}
-                                                            className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all ${commentType === 'COMMENT' ? 'bg-indigo-600 text-white' : 'bg-neutral-800 text-neutral-500'}`}
-                                                        >
-                                                            Comment
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setCommentType('REVIEW')}
-                                                            className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all ${commentType === 'REVIEW' ? 'bg-amber-500 text-neutral-950' : 'bg-neutral-800 text-neutral-500'}`}
-                                                        >
-                                                            Review
-                                                        </button>
-                                                    </div>
-                                                    <div className="relative">
-                                                        <textarea
-                                                            value={newComment}
-                                                            onChange={(e) => setNewComment(e.target.value)}
-                                                            placeholder={`Add a ${commentType.toLowerCase()}...`}
-                                                            className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-3 pr-10 text-xs text-white focus:border-indigo-500 outline-none resize-none transition-all"
-                                                        />
-                                                        <button
-                                                            onClick={handleAddComment}
-                                                            disabled={submittingComment || !newComment.trim()}
-                                                            className="absolute right-2 bottom-2 p-1.5 rounded-lg bg-indigo-600 text-white disabled:opacity-50 transition-all"
-                                                        >
-                                                            <Send className="w-3 h-3" />
-                                                        </button>
+                                                    <div className="mt-4 flex flex-col gap-3">
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => setCommentType('COMMENT')}
+                                                                className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all ${commentType === 'COMMENT' ? 'bg-indigo-600 text-white' : 'bg-neutral-800 text-neutral-500'}`}
+                                                            >
+                                                                Comment
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setCommentType('REVIEW')}
+                                                                className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all ${commentType === 'REVIEW' ? 'bg-amber-500 text-neutral-950' : 'bg-neutral-800 text-neutral-500'}`}
+                                                            >
+                                                                Review
+                                                            </button>
+                                                        </div>
+                                                        <div className="relative">
+                                                            <textarea
+                                                                value={newComment}
+                                                                onChange={(e) => setNewComment(e.target.value)}
+                                                                placeholder={`Add a ${commentType.toLowerCase()}...`}
+                                                                className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-3 pr-10 text-xs text-white focus:border-indigo-500 outline-none resize-none transition-all"
+                                                            />
+                                                            <button
+                                                                onClick={handleAddComment}
+                                                                disabled={submittingComment || !newComment.trim()}
+                                                                className="absolute right-2 bottom-2 p-1.5 rounded-lg bg-indigo-600 text-white disabled:opacity-50 transition-all"
+                                                            >
+                                                                <Send className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    )) : (
-                        <div className="p-12 text-center text-neutral-500 italic text-sm">No tasks found.</div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </motion.div>
+                        ))
+                    ) : (
+                        <div className="p-12 text-center text-neutral-500 italic text-sm font-bold uppercase tracking-widest">No Operational Tasks In Backlog</div>
                     )}
+                    {/* Completer Selection Modal */}
+                    <AnimatePresence>
+                        {completerSelectionTask && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={() => setCompleterSelectionTask(null)}
+                                    className="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm"
+                                />
+                                <motion.div
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.9, opacity: 0 }}
+                                    className="relative w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl"
+                                >
+                                    <h3 className="text-lg font-bold text-white mb-1">Verify Completion</h3>
+                                    <p className="text-sm text-neutral-500 mb-6">Who actually completed this work? (Attribution will change performance share)</p>
+
+                                    <div className="space-y-2 mb-6">
+                                        {partners.map((p) => (
+                                            <button
+                                                key={p.id}
+                                                onClick={() => handleConfirmCompletion(completerSelectionTask.id, p.user.id)}
+                                                className="w-full flex items-center gap-3 p-3 rounded-xl border border-neutral-800 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-neutral-800 flex items-center justify-center font-bold text-xs text-indigo-400 group-hover:bg-indigo-500/20">
+                                                    {p.user.name[0]}
+                                                </div>
+                                                <span className="text-sm font-bold text-neutral-200">{p.user.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setCompleterSelectionTask(null)}
+                                        className="w-full py-2.5 text-sm font-bold text-neutral-500 hover:text-white transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
-
-            {/* Completer Selection Modal */}
-            <AnimatePresence>
-                {completerSelectionTask && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setCompleterSelectionTask(null)}
-                            className="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl"
-                        >
-                            <h3 className="text-lg font-bold text-white mb-1">Verify Completion</h3>
-                            <p className="text-sm text-neutral-500 mb-6">Who actually completed this work? (Attribution will change performance share)</p>
-
-                            <div className="space-y-2 mb-6">
-                                {partners.map((p) => (
-                                    <button
-                                        key={p.id}
-                                        onClick={() => handleConfirmCompletion(completerSelectionTask.id, p.user.id)}
-                                        className="w-full flex items-center gap-3 p-3 rounded-xl border border-neutral-800 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group"
-                                    >
-                                        <div className="w-8 h-8 rounded-lg bg-neutral-800 flex items-center justify-center font-bold text-xs text-indigo-400 group-hover:bg-indigo-500/20">
-                                            {p.user.name[0]}
-                                        </div>
-                                        <span className="text-sm font-bold text-neutral-200">{p.user.name}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            <button
-                                onClick={() => setCompleterSelectionTask(null)}
-                                className="w-full py-2.5 text-sm font-bold text-neutral-500 hover:text-white transition-colors"
-                            >
-                                Cancel
-                            </button>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
         </div>
     );
 }
