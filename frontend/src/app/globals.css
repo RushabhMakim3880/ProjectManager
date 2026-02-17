@@ -63,9 +63,11 @@ body {
   .mobile-only {
     @apply block sm:hidden;
   }
+
   .desktop-only {
     @apply hidden sm:block;
   }
+
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -73,15 +75,28 @@ body {
 
 /* Mobile Typography Fixes */
 @media (max-width: 640px) {
-  h1 { @apply text-2xl !important; }
-  h2 { @apply text-xl !important; }
-  h3 { @apply text-lg !important; }
-  p { @apply text-sm !important; }
+  h1 {
+    @apply !text-2xl;
+  }
+
+  h2 {
+    @apply !text-xl;
+  }
+
+  h3 {
+    @apply !text-lg;
+  }
+
+  p {
+    @apply !text-sm;
+  }
 }
 
 /* Better touch targets for mobile */
 @media (pointer: coarse) {
-  button, a {
+
+  button,
+  a {
     @apply min-h-[44px];
   }
 }
