@@ -14,6 +14,7 @@ app.get('/api/ping', (req: Request, res: Response) => {
         timestamp: new Date().toISOString(),
         env_check: {
             has_db: !!process.env.DATABASE_URL,
+            has_jwt: !!process.env.JWT_SECRET,
             node_env: process.env.NODE_ENV
         }
     });
@@ -43,8 +44,8 @@ app.post('/api/auth/login', express.json(), async (req: Request, res: Response) 
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
-        const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret';
+        const JWT_SECRET = process.env.JWT_SECRET || 'protrack_dev_secret_2024';
+        const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'protrack_dev_refresh_2024';
 
         const accessToken = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '15m' });
         const refreshToken = jwt.sign({ userId: user.id }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
