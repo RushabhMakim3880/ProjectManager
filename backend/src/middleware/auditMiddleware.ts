@@ -1,5 +1,5 @@
 import { type Request, type Response, type NextFunction } from 'express';
-import { prisma } from '../index.js';
+import { prisma } from '../lib/prisma.js';
 import { type AuthRequest } from './authMiddleware.js';
 
 export const logAction = (action: string, entity: string) => {

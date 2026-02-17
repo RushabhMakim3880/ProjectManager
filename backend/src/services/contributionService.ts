@@ -1,4 +1,4 @@
-import { prisma } from '../index.js';
+import { prisma } from '../lib/prisma.js';
 
 export const calculateProjectContributions = async (projectId: string) => {
     const project = await prisma.project.findUnique({
