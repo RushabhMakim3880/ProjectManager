@@ -418,18 +418,29 @@ export default function ProjectDetailsPage() {
                             Security Leads
                         </h4>
                         <div className="space-y-4 mt-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs text-neutral-500">Project Lead</span>
-                                <span className="text-xs text-neutral-300 font-medium">Assigned</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs text-neutral-500">Technical Lead</span>
-                                <span className="text-xs text-neutral-300 font-medium">Assigned</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs text-neutral-500">QA Lead</span>
-                                <span className="text-xs text-neutral-300 font-medium">Assigned</span>
-                            </div>
+                            {(() => {
+                                const getLeadName = (leadId: string) => {
+                                    const contribution = (project.contributions || []).find((c: any) => c.partnerId === leadId);
+                                    return contribution?.partner?.user?.name || "Unassigned";
+                                };
+
+                                return (
+                                    <>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-neutral-500">Project Lead</span>
+                                            <span className="text-xs text-neutral-300 font-medium">{getLeadName(project.projectLeadId)}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-neutral-500">Technical Lead</span>
+                                            <span className="text-xs text-neutral-300 font-medium">{getLeadName(project.techLeadId)}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-neutral-500">QA Lead</span>
+                                            <span className="text-xs text-neutral-300 font-medium">{getLeadName(project.qaLeadId)}</span>
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
