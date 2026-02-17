@@ -42,30 +42,33 @@ export const createTask = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const updateTask = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
-    const { completionPercent, timeSpent, status, name, category, effortWeight, assignedPartnerId } = req.body;
+    const {
+        completionPercent, timeSpent, status, name, category, effortWeight,
+        assignedPartnerId, completedById: manualCompletedById
+    } = req.body;
 
     try {
         const currentTask = await prisma.task.findUnique({ where: { id } });
         if (!currentTask) return next(new AppError('Task not found', 404));
 
-        const userId = (req as AuthRequest).user?.userId;
+        const authUserId = (req as AuthRequest).user?.userId;
 
         // Sync status and completionPercent
         let finalStatus = status;
         let finalPercent = completionPercent;
-        let completedById = currentTask.completedById;
+        let completedById = manualCompletedById || currentTask.completedById;
         let completedAt = currentTask.completedAt;
 
         if (status === 'DONE' && currentTask.status !== 'DONE') {
             finalPercent = 100;
-            completedById = userId;
+            completedById = manualCompletedById || authUserId;
             completedAt = new Date();
         } else if (status && status !== 'DONE' && currentTask.status === 'DONE') {
             completedById = null;
             completedAt = null;
         } else if (completionPercent === 100 && currentTask.status !== 'DONE') {
             finalStatus = 'DONE';
-            completedById = userId;
+            completedById = manualCompletedById || authUserId;
             completedAt = new Date();
         } else if (completionPercent !== undefined && completionPercent < 100 && currentTask.status === 'DONE') {
             finalStatus = 'IN_PROGRESS';

@@ -16,6 +16,15 @@ export const calculateProjectContributions = async (projectId: string) => {
     // 1. Group tasks by category and calculate total effort per category
     const categoryData: Record<string, { totalEffort: number, partnerEffort: Record<string, number> }> = {};
 
+    // Fetch all partners for this project to map userId to partnerId
+    const projectPartners = await prisma.partner.findMany({
+        where: { contributions: { some: { projectId } } }
+    });
+    const userToPartnerMap: Record<string, string> = {};
+    projectPartners.forEach((p: any) => {
+        userToPartnerMap[p.userId] = p.id;
+    });
+
     tasks.forEach((task: any) => {
         if (!categoryData[task.category]) {
             categoryData[task.category] = { totalEffort: 0, partnerEffort: {} };
@@ -24,11 +33,18 @@ export const calculateProjectContributions = async (projectId: string) => {
         const cat = categoryData[task.category]!;
         cat.totalEffort += task.effortWeight;
 
-        if (task.assignedPartnerId) {
-            if (!cat.partnerEffort[task.assignedPartnerId]) {
-                cat.partnerEffort[task.assignedPartnerId] = 0;
+        // Credit goes to COMPLETER if task is DONE, otherwise to ASSIGNEE
+        let creditPartnerId = task.assignedPartnerId;
+        if (task.status === 'DONE' && task.completedById) {
+            // Map the User ID (completer) to a Partner ID
+            creditPartnerId = userToPartnerMap[task.completedById] || task.assignedPartnerId;
+        }
+
+        if (creditPartnerId) {
+            if (!cat.partnerEffort[creditPartnerId]) {
+                cat.partnerEffort[creditPartnerId] = 0;
             }
-            cat.partnerEffort[task.assignedPartnerId]! += task.effortWeight;
+            cat.partnerEffort[creditPartnerId]! += task.effortWeight;
         }
     });
 

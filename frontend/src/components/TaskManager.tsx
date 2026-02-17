@@ -52,6 +52,7 @@ interface TaskComment {
 interface Partner {
     id: string;
     user: {
+        id: string;
         name: string;
     };
 }
@@ -66,7 +67,8 @@ interface TaskManagerProps {
 export default function TaskManager({ projectId, tasks, categories, onTaskUpdate }: TaskManagerProps) {
     const [partners, setPartners] = useState<Partner[]>([]);
     const [isCreating, setIsCreating] = useState(false);
-    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+    const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+    const [completerSelectionTask, setCompleterSelectionTask] = useState<Task | null>(null);
     const [comments, setComments] = useState<TaskComment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [commentType, setCommentType] = useState<'COMMENT' | 'REVIEW'>('COMMENT');
@@ -78,8 +80,6 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
         effortWeight: 1,
         assignedPartnerId: ''
     });
-
-    const selectedTask = tasks.find(t => t.id === selectedTaskId);
 
     const fetchComments = async (taskId: string) => {
         setLoadingComments(true);
@@ -94,20 +94,24 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
     };
 
     const handleTaskClick = (taskId: string) => {
-        setSelectedTaskId(taskId);
-        fetchComments(taskId);
+        if (expandedTaskId === taskId) {
+            setExpandedTaskId(null);
+        } else {
+            setExpandedTaskId(taskId);
+            fetchComments(taskId);
+        }
     };
 
     const handleAddComment = async () => {
-        if (!newComment.trim() || !selectedTaskId) return;
+        if (!newComment.trim() || !expandedTaskId) return;
         setSubmittingComment(true);
         try {
-            await api.post(`/projects/tasks/${selectedTaskId}/comments`, {
+            await api.post(`/projects/tasks/${expandedTaskId}/comments`, {
                 content: newComment,
                 type: commentType
             });
             setNewComment('');
-            fetchComments(selectedTaskId);
+            fetchComments(expandedTaskId);
         } catch (err) {
             console.error("Failed to add comment", err);
         } finally {
@@ -149,6 +153,12 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
     };
 
     const handleUpdateProgress = async (taskId: string, percent: number) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (percent === 100 && task?.status !== 'DONE') {
+            setCompleterSelectionTask(task || null);
+            return;
+        }
+
         try {
             await api.patch(`/projects/tasks/${taskId}`, {
                 completionPercent: percent
@@ -156,6 +166,20 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
             onTaskUpdate();
         } catch (err) {
             console.error("Failed to update task", err);
+        }
+    };
+
+    const handleConfirmCompletion = async (taskId: string, userId: string) => {
+        try {
+            await api.patch(`/projects/tasks/${taskId}`, {
+                completionPercent: 100,
+                status: 'DONE',
+                completedById: userId
+            });
+            setCompleterSelectionTask(null);
+            onTaskUpdate();
+        } catch (err) {
+            console.error("Failed to complete task", err);
         }
     };
 
@@ -257,239 +281,207 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
             <div className="glass-card overflow-hidden">
                 <div className="divide-y divide-neutral-800">
                     {tasks.length > 0 ? tasks.map((task) => (
-                        <div
-                            key={task.id}
-                            onClick={() => handleTaskClick(task.id)}
-                            className={`p-4 hover:bg-neutral-800/10 transition-colors group cursor-pointer border-l-2 ${selectedTaskId === task.id ? 'bg-indigo-500/5 ring-1 ring-indigo-500/20' : 'border-l-transparent'}`}
-                        >
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-lg ${task.completionPercent === 100 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-indigo-500/10 text-indigo-400'}`}>
-                                        <CheckCircle2 className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-white leading-tight">{task.name}</p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-500 uppercase">{task.category}</span>
-                                            <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1">
-                                                <Clock className="w-3 h-3" /> Effort: {task.effortWeight}
-                                            </span>
+                        <div key={task.id} className={`transition-all duration-300 ${expandedTaskId === task.id ? 'bg-neutral-900/50' : 'hover:bg-neutral-800/10'}`}>
+                            {/* Task Row */}
+                            <div
+                                onClick={() => handleTaskClick(task.id)}
+                                className={`p-4 group cursor-pointer border-l-2 flex flex-col gap-3 ${expandedTaskId === task.id ? 'border-l-indigo-500' : 'border-l-transparent'}`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${task.completionPercent === 100 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-indigo-500/10 text-indigo-400'}`}>
+                                            <CheckCircle2 className="w-4 h-4" />
                                         </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-white leading-tight">{task.name}</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-500 uppercase">{task.category}</span>
+                                                <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1">
+                                                    <Clock className="w-3 h-3" /> Effort: {task.effortWeight}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-bold text-neutral-500 uppercase mb-0.5">Assigned To</p>
+                                            <div className="flex items-center gap-1.5 justify-end">
+                                                <div className="w-5 h-5 rounded-full bg-neutral-800 flex items-center justify-center border border-neutral-700">
+                                                    <UserPlus className="w-3 h-3 text-neutral-500" />
+                                                </div>
+                                                <span className="text-xs font-medium text-white">{task.assignedPartner?.user?.name || 'Unassigned'}</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
+                                            className="p-2 text-neutral-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
+
                                 <div className="flex items-center gap-4">
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-bold text-neutral-500 uppercase mb-0.5">Assigned To</p>
-                                        <div className="flex items-center gap-1.5 justify-end">
-                                            <div className="w-5 h-5 rounded-full bg-neutral-800 flex items-center justify-center border border-neutral-700">
-                                                <UserPlus className="w-3 h-3 text-neutral-500" />
-                                            </div>
-                                            <span className="text-xs font-medium text-white">{task.assignedPartner?.user?.name || 'Unassigned'}</span>
-                                        </div>
+                                    <div className="flex-1 h-1 bg-neutral-800 rounded-full overflow-hidden">
+                                        <div
+                                            className={`h-full transition-all duration-500 ${task.completionPercent === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                                            style={{ width: `${task.completionPercent}%` }}
+                                        />
                                     </div>
-                                    <button
-                                        onClick={() => handleDeleteTask(task.id)}
-                                        className="p-2 text-neutral-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                    <select
+                                        value={task.completionPercent}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => handleUpdateProgress(task.id, Number(e.target.value))}
+                                        className="bg-transparent text-[10px] font-bold text-neutral-400 outline-none hover:text-white transition-colors"
                                     >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                        <option value="0">0%</option>
+                                        <option value="25">25%</option>
+                                        <option value="50">50%</option>
+                                        <option value="75">75%</option>
+                                        <option value="100">100%</option>
+                                    </select>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4">
-                                <div className="flex-1 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full transition-all duration-500 ${task.completionPercent === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
-                                        style={{ width: `${task.completionPercent}%` }}
-                                    />
-                                </div>
-                                <select
-                                    value={task.completionPercent}
-                                    onChange={(e) => handleUpdateProgress(task.id, Number(e.target.value))}
-                                    className="bg-transparent text-[10px] font-bold text-neutral-400 outline-none hover:text-white transition-colors"
-                                >
-                                    <option value="0">0%</option>
-                                    <option value="25">25%</option>
-                                    <option value="50">50%</option>
-                                    <option value="75">75%</option>
-                                    <option value="100">100%</option>
-                                </select>
-                            </div>
+                            {/* Expanded Details Layer */}
+                            <AnimatePresence>
+                                {expandedTaskId === task.id && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden border-t border-neutral-800 bg-neutral-950/40"
+                                    >
+                                        <div className="p-6 space-y-6">
+                                            {/* Completion Info */}
+                                            {task.status === 'DONE' && (
+                                                <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-4">
+                                                    <div className="p-2 rounded-lg bg-emerald-500/10">
+                                                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest leading-none mb-1">Completed By</p>
+                                                        <p className="text-sm font-bold text-emerald-400">{task.completedBy?.name || 'System User'}</p>
+                                                        {task.completedAt && (
+                                                            <p className="text-[9px] text-neutral-500 font-medium">
+                                                                {new Date(task.completedAt).toLocaleString()}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Comments Section */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-2">
+                                                    <MessageSquare className="w-3.5 h-3.5" />
+                                                    Activity & Reviews
+                                                </h4>
+
+                                                <div className="space-y-3">
+                                                    {loadingComments ? (
+                                                        <div className="py-4 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-neutral-500" /></div>
+                                                    ) : comments.length === 0 ? (
+                                                        <p className="text-xs text-neutral-600 italic px-2">No activity recorded for this task.</p>
+                                                    ) : (
+                                                        comments.map(c => (
+                                                            <div key={c.id} className={`p-3 rounded-xl border ${c.type === 'REVIEW' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-neutral-900 border-neutral-800'}`}>
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <span className="text-[10px] font-bold text-indigo-400">{c.user.name}</span>
+                                                                    <span className="text-[9px] text-neutral-600">{new Date(c.createdAt).toLocaleDateString()}</span>
+                                                                </div>
+                                                                <p className="text-xs text-neutral-400 leading-relaxed">{c.content}</p>
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-4 flex flex-col gap-3">
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => setCommentType('COMMENT')}
+                                                            className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all ${commentType === 'COMMENT' ? 'bg-indigo-600 text-white' : 'bg-neutral-800 text-neutral-500'}`}
+                                                        >
+                                                            Comment
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setCommentType('REVIEW')}
+                                                            className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all ${commentType === 'REVIEW' ? 'bg-amber-500 text-neutral-950' : 'bg-neutral-800 text-neutral-500'}`}
+                                                        >
+                                                            Review
+                                                        </button>
+                                                    </div>
+                                                    <div className="relative">
+                                                        <textarea
+                                                            value={newComment}
+                                                            onChange={(e) => setNewComment(e.target.value)}
+                                                            placeholder={`Add a ${commentType.toLowerCase()}...`}
+                                                            className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-3 pr-10 text-xs text-white focus:border-indigo-500 outline-none resize-none transition-all"
+                                                        />
+                                                        <button
+                                                            onClick={handleAddComment}
+                                                            disabled={submittingComment || !newComment.trim()}
+                                                            className="absolute right-2 bottom-2 p-1.5 rounded-lg bg-indigo-600 text-white disabled:opacity-50 transition-all"
+                                                        >
+                                                            <Send className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     )) : (
-                        <div className="p-12 text-center">
-                            <AlertCircle className="w-8 h-8 text-neutral-700 mx-auto mb-3" />
-                            <p className="text-neutral-500 text-xs italic">No tasks created yet. Start by adding one above.</p>
-                        </div>
+                        <div className="p-12 text-center text-neutral-500 italic text-sm">No tasks found.</div>
                     )}
                 </div>
             </div>
 
-            {/* Task Details Sidebar */}
+            {/* Completer Selection Modal */}
             <AnimatePresence>
-                {selectedTaskId && selectedTask && (
-                    <>
+                {completerSelectionTask && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setSelectedTaskId(null)}
-                            className="fixed inset-0 bg-neutral-950/60 backdrop-blur-sm z-40"
+                            onClick={() => setCompleterSelectionTask(null)}
+                            className="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm"
                         />
                         <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-neutral-900 border-l border-neutral-800 z-50 shadow-2xl flex flex-col"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="relative w-full max-w-sm bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl"
                         >
-                            <div className="p-6 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/50 backdrop-blur-md sticky top-0">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-[10px] font-bold uppercase text-neutral-500 bg-neutral-800 px-2 py-0.5 rounded-lg border border-neutral-700">
-                                            {selectedTask.category}
-                                        </span>
-                                        <div className={`w-2 h-2 rounded-full ${selectedTask.status === 'DONE' ? 'bg-emerald-400' : selectedTask.status === 'IN_PROGRESS' ? 'bg-indigo-400' : 'bg-neutral-500'}`} />
-                                    </div>
-                                    <h2 className="text-lg font-bold text-white uppercase tracking-tight">{selectedTask.name}</h2>
-                                </div>
-                                <button
-                                    onClick={() => setSelectedTaskId(null)}
-                                    className="p-2 rounded-xl bg-neutral-800 text-neutral-400 hover:text-white transition-all active:scale-95"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
+                            <h3 className="text-lg font-bold text-white mb-1">Verify Completion</h3>
+                            <p className="text-sm text-neutral-500 mb-6">Who actually completed this work? (Attribution will change performance share)</p>
+
+                            <div className="space-y-2 mb-6">
+                                {partners.map((p) => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => handleConfirmCompletion(completerSelectionTask.id, p.user.id)}
+                                        className="w-full flex items-center gap-3 p-3 rounded-xl border border-neutral-800 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group"
+                                    >
+                                        <div className="w-8 h-8 rounded-lg bg-neutral-800 flex items-center justify-center font-bold text-xs text-indigo-400 group-hover:bg-indigo-500/20">
+                                            {p.user.name[0]}
+                                        </div>
+                                        <span className="text-sm font-bold text-neutral-200">{p.user.name}</span>
+                                    </button>
+                                ))}
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-                                {/* Attribution Section */}
-                                {selectedTask.status === 'DONE' && (
-                                    <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 flex items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-500">
-                                        <div className="p-2.5 rounded-xl bg-emerald-500/10">
-                                            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                                        </div>
-                                        <div>
-                                            <p className="text-[11px] font-bold text-emerald-500/60 uppercase tracking-widest">Completed By</p>
-                                            <p className="text-sm font-bold text-emerald-400">
-                                                {selectedTask.completedBy?.name || 'System User'}
-                                            </p>
-                                            {selectedTask.completedAt && (
-                                                <p className="text-[10px] text-emerald-600 font-medium">
-                                                    {new Date(selectedTask.completedAt).toLocaleDateString('en-US', {
-                                                        weekday: 'long',
-                                                        year: 'numeric',
-                                                        month: 'long',
-                                                        day: 'numeric',
-                                                        hour: 'numeric',
-                                                        minute: '2-digit'
-                                                    })}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="space-y-4">
-                                    <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                                        <User className="w-3.5 h-3.5" />
-                                        Task Assignment
-                                    </h3>
-                                    <div className="flex items-center gap-3 p-3 rounded-xl bg-neutral-950 border border-neutral-800">
-                                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold text-xs">
-                                            {selectedTask.assignedPartner?.user.name[0]}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-neutral-200">{selectedTask.assignedPartner?.user.name || 'Unassigned'}</p>
-                                            <p className="text-[10px] text-neutral-500 uppercase font-black">Designated Worker</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Comments Section */}
-                                <div className="space-y-4 pt-4 border-t border-neutral-800/50">
-                                    <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest flex items-center gap-2">
-                                        <MessageSquare className="w-3.5 h-3.5" />
-                                        Discussion & Reviews
-                                    </h3>
-
-                                    <div className="space-y-4">
-                                        {loadingComments ? (
-                                            <div className="py-8 flex flex-col items-center justify-center gap-3 text-neutral-600">
-                                                <Loader2 className="w-6 h-6 animate-spin" />
-                                                <p className="text-xs font-bold uppercase tracking-tighter">Loading conversation...</p>
-                                            </div>
-                                        ) : comments.length === 0 ? (
-                                            <div className="py-12 flex flex-col items-center justify-center text-center px-6">
-                                                <div className="p-4 rounded-full bg-neutral-950 border border-neutral-800 mb-4 opacity-50">
-                                                    <MessageSquare className="w-6 h-6 text-neutral-700" />
-                                                </div>
-                                                <p className="text-sm font-bold text-neutral-500">No activity yet</p>
-                                                <p className="text-[10px] text-neutral-600 mt-1 uppercase tracking-widest font-black">Be the first to comment or review</p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-4">
-                                                {comments.map((comment) => (
-                                                    <div key={comment.id} className={`group flex flex-col gap-1.5 p-3 rounded-2xl transition-all ${comment.type === 'REVIEW' ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-neutral-950 border border-neutral-800'}`}>
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs font-bold text-neutral-200">{comment.user.name}</span>
-                                                                {comment.type === 'REVIEW' && (
-                                                                    <span className="text-[8px] font-black uppercase tracking-tighter bg-amber-500 text-neutral-950 px-1.5 py-0.5 rounded">Review</span>
-                                                                )}
-                                                            </div>
-                                                            <span className="text-[9px] font-medium text-neutral-600">
-                                                                {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                                                                    month: 'short',
-                                                                    day: 'numeric',
-                                                                    hour: 'numeric',
-                                                                    minute: '2-digit'
-                                                                })}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-sm text-neutral-400 leading-relaxed font-medium">{comment.content}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Comment Input */}
-                            <div className="p-6 bg-neutral-950/80 backdrop-blur-md border-t border-neutral-800">
-                                <div className="flex gap-2 mb-3">
-                                    <button
-                                        onClick={() => setCommentType('COMMENT')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${commentType === 'COMMENT' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700'}`}
-                                    >
-                                        <MessageSquare className="w-3 h-3" />
-                                        Comment
-                                    </button>
-                                    <button
-                                        onClick={() => setCommentType('REVIEW')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${commentType === 'REVIEW' ? 'bg-amber-500 text-neutral-950 shadow-lg shadow-amber-500/20' : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700'}`}
-                                    >
-                                        <Star className="w-3 h-3" />
-                                        Review
-                                    </button>
-                                </div>
-                                <div className="relative">
-                                    <textarea
-                                        value={newComment}
-                                        onChange={(e) => setNewComment(e.target.value)}
-                                        placeholder={`Add a ${commentType.toLowerCase()}...`}
-                                        className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl p-4 pr-12 text-sm text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all resize-none min-h-[100px]"
-                                    />
-                                    <button
-                                        onClick={handleAddComment}
-                                        disabled={submittingComment || !newComment.trim()}
-                                        className="absolute right-3 bottom-3 p-2.5 rounded-xl bg-indigo-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-600/20"
-                                    >
-                                        {submittingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                    </button>
-                                </div>
-                            </div>
+                            <button
+                                onClick={() => setCompleterSelectionTask(null)}
+                                className="w-full py-2.5 text-sm font-bold text-neutral-500 hover:text-white transition-colors"
+                            >
+                                Cancel
+                            </button>
                         </motion.div>
-                    </>
+                    </div>
                 )}
             </AnimatePresence>
         </div>
