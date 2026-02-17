@@ -37,9 +37,17 @@ export const createInvitation = async (req: AuthRequest, res: Response) => {
         });
 
         // Dynamically determine base URL to avoid mismatched deployment links
+        // We prioritize the current request host over the potentially stale FRONTEND_URL env var
         const protocol = req.headers['x-forwarded-proto'] || 'https';
         const host = req.headers.host;
-        const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
+        let baseUrl = `${protocol}://${host}`;
+
+        // If we are in local dev, allow override, otherwise trust the host
+        if (process.env.NODE_ENV !== 'production' && process.env.FRONTEND_URL) {
+            baseUrl = process.env.FRONTEND_URL;
+        }
+
+        console.log('INVITATION_LINK_GEN:', { host, baseUrl, env_url: process.env.FRONTEND_URL });
         const onboardingUrl = `${baseUrl}/onboarding/${token}`;
 
         res.status(201).json({

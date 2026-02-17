@@ -114,7 +114,12 @@ app.use('/api/auth', express.json(), async (req, res, next) => {
 
 app.use('/api/invitations', express.json(), async (req, res, next) => {
     try {
-        console.log('BRIDGE_INVITATIONS_START');
+        console.log('BRIDGE_INVITATIONS_START', {
+            host: req.headers.host,
+            fwd_proto: req.headers['x-forwarded-proto'],
+            fwd_host: req.headers['x-forwarded-host'],
+            frontend_url_env: process.env.FRONTEND_URL
+        });
         const { default: router } = await import('../backend/src/routes/invitationRoutes.js');
         router(req, res, next);
     } catch (err: any) {
