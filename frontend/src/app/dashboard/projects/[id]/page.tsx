@@ -19,11 +19,13 @@ import {
     Info,
     Mail,
     MapPin,
-    Trophy
+    Trophy,
+    DollarSign
 } from 'lucide-react';
 import ContributionList from '@/components/ContributionList';
 import FinancialVisualizer from '@/components/FinancialVisualizer';
 import TaskManager from '@/components/TaskManager';
+import FinancialBreakdown from '@/components/FinancialBreakdown';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 
@@ -131,6 +133,7 @@ export default function ProjectDetailsPage() {
                     { id: 'technical', label: 'Technical Scope', icon: FileText },
                     { id: 'client', label: 'Engagement', icon: Users },
                     { id: 'team', label: 'Team & Logic', icon: Settings },
+                    { id: 'earnings', label: 'Financial Breakdown', icon: DollarSign },
                 ].map((tab) => (
                     <button
                         key={tab.id}
@@ -354,6 +357,10 @@ export default function ProjectDetailsPage() {
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'earnings' && (
+                        <FinancialBreakdown project={project} />
                     )}
                 </div>
 
