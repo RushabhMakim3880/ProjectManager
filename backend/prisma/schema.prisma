@@ -96,6 +96,7 @@ model Partner {
   totalEarnings   Float          @default(0)
   payouts         Payout[]
   contributions   Contribution[]
+  capitalInjections CapitalInjection[]
   tasks           Task[]
 }
 
