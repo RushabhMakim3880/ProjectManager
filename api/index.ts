@@ -68,28 +68,47 @@ app.post('/api/auth/login', express.json(), async (req: Request, res: Response) 
 // MOUNT ROUTERS DIRECTLY
 app.use('/api/projects', async (req, res, next) => {
     try {
+        console.log('BRIDGE_PROJECTS_START');
         const { default: router } = await import('../backend/src/routes/projectRoutes.js');
         router(req, res, next);
     } catch (err: any) {
-        res.status(500).json({ error: 'Project Router Failed', message: err.message });
+        console.error('BRIDGE_PROJECTS_FAILURE:', err);
+        res.status(500).json({
+            error: 'Project Router Failed',
+            message: err.message,
+            stack: err.stack,
+            hint: 'Check if all backend dependencies are resolving correctly'
+        });
     }
 });
 
 app.use('/api/partners', async (req, res, next) => {
     try {
+        console.log('BRIDGE_PARTNERS_START');
         const { default: router } = await import('../backend/src/routes/partnerRoutes.js');
         router(req, res, next);
     } catch (err: any) {
-        res.status(500).json({ error: 'Partner Router Failed', message: err.message });
+        console.error('BRIDGE_PARTNERS_FAILURE:', err);
+        res.status(500).json({
+            error: 'Partner Router Failed',
+            message: err.message,
+            stack: err.stack
+        });
     }
 });
 
 app.use('/api/auth', async (req, res, next) => {
     try {
+        console.log('BRIDGE_AUTH_START');
         const { default: router } = await import('../backend/src/routes/authRoutes.js');
         router(req, res, next);
     } catch (err: any) {
-        res.status(500).json({ error: 'Auth Router Failed', message: err.message });
+        console.error('BRIDGE_AUTH_FAILURE:', err);
+        res.status(500).json({
+            error: 'Auth Router Failed',
+            message: err.message,
+            stack: err.stack
+        });
     }
 });
 
