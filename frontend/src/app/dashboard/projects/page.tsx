@@ -163,8 +163,13 @@ export default function ProjectsPage() {
                                             </p>
                                         </div>
                                         <div className="p-3 rounded-xl bg-neutral-900/50 border border-neutral-800/50">
-                                            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">Project Type</p>
-                                            <p className="text-white font-bold text-xs">{project.projectType || 'VAPT'}</p>
+                                            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">Service Type</p>
+                                            <div className="flex flex-col">
+                                                <span className="text-white font-bold text-xs truncate" title={project.projectType}>{project.projectType || 'VAPT'}</span>
+                                                {project.category && (
+                                                    <span className="text-[10px] text-neutral-400 truncate mt-0.5" title={project.category}>{project.category}</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </Link>

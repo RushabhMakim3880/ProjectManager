@@ -164,7 +164,7 @@ export const updateProject = async (req: Request, res: Response, next: NextFunct
     try {
         const {
             name, clientName, totalValue, startDate, endDate, description, weights,
-            projectType, priority, status,
+            projectType, category, priority, status,
             clientContact, clientEmail, clientPhone, whatsappNumber, commsChannel, timezone, location,
             ndaSigned, internalDeadline, clientDeadline,
             objectives, deliverables, outOfScope, techStack, environments, accessReqs, dependencies, riskLevel,
@@ -185,6 +185,7 @@ export const updateProject = async (req: Request, res: Response, next: NextFunct
                 status,
                 weights: weights ? (typeof weights === 'string' ? weights : JSON.stringify(weights)) : undefined,
                 projectType,
+                category,
                 priority,
                 clientContact,
                 clientEmail,

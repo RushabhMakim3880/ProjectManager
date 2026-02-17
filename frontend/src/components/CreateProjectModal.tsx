@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
+import { PROJECT_DOMAINS, PROJECT_SERVICES } from '@/lib/project-types';
 
 interface Milestone {
     name: string;
@@ -44,7 +45,8 @@ export default function CreateProjectModal({ onClose, initialData }: { onClose: 
         startDate: '',
         endDate: '',
         description: '',
-        projectType: 'VAPT',
+        projectType: '',
+        category: '',
         priority: 'MEDIUM',
         status: 'PLANNED',
 
@@ -206,18 +208,37 @@ export default function CreateProjectModal({ onClose, initialData }: { onClose: 
                                 />
                             </div>
                         </div>
+
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Project Type</label>
+                            <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Project Domain</label>
                             <select
                                 className="input-field" value={formData.projectType}
-                                onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
+                                onChange={(e) => setFormData({
+                                    ...formData,
+                                    projectType: e.target.value,
+                                    category: '' // Reset service when domain changes
+                                })}
                             >
-                                <option>VAPT</option>
-                                <option>Development</option>
-                                <option>Consulting</option>
-                                <option>Mixed</option>
+                                <option value="">Select Domain...</option>
+                                {PROJECT_DOMAINS.map(domain => (
+                                    <option key={domain} value={domain}>{domain}</option>
+                                ))}
                             </select>
                         </div>
+                        {formData.projectType && PROJECT_SERVICES[formData.projectType] && (
+                            <div className="space-y-2 col-span-1 md:col-span-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Specific Service</label>
+                                <select
+                                    className="input-field" value={formData.category || ''}
+                                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                >
+                                    <option value="">Select Service...</option>
+                                    {PROJECT_SERVICES[formData.projectType].map((service: string) => (
+                                        <option key={service} value={service}>{service}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <div className="space-y-2 text-sm">
                             <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Priority</label>
                             <div className="flex gap-2">
