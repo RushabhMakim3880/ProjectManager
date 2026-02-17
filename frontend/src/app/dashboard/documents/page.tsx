@@ -119,36 +119,44 @@ export default function DocumentsPage() {
                         </div>
 
                         <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-                            {projects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
-                                projects
-                                    .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                                    .map(proj => (
-                                        <button
-                                            key={proj.id}
-                                            type="button"
-                                            onClick={() => {
-                                                console.log("Selected project:", proj.name);
-                                                setSelectedProject(proj);
-                                            }}
-                                            className={`w-full text-left px-4 py-3 rounded-xl border transition-all flex items-center justify-between group ${selectedProject?.id === proj.id
-                                                ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-500/10'
-                                                : 'bg-neutral-900/50 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900'
-                                                }`}
-                                        >
-                                            <div className="truncate pr-4">
-                                                <p className={`text-sm font-bold truncate ${selectedProject?.id === proj.id ? 'text-white' : 'text-neutral-300'}`}>{proj.name}</p>
-                                                <p className="text-[10px] uppercase font-bold text-neutral-600 mt-0.5">{proj.clientName || 'No Client'}</p>
-                                            </div>
-                                            <div className={`p-1.5 rounded-lg transition-all ${selectedProject?.id === proj.id ? 'bg-indigo-500 text-white' : 'bg-neutral-800 text-neutral-600'}`}>
-                                                <ChevronRight className={`w-3.5 h-3.5 transition-transform ${selectedProject?.id === proj.id ? 'rotate-90' : ''}`} />
-                                            </div>
-                                        </button>
-                                    ))
-                            ) : (
-                                <div className="py-8 text-center border border-dashed border-neutral-800 rounded-xl">
-                                    <p className="text-xs text-neutral-600 font-medium">No projects available</p>
-                                </div>
-                            )}
+                            {(() => {
+                                const filtered = projects.filter(p => {
+                                    const search = searchTerm.toLowerCase();
+                                    return (p.name?.toLowerCase().includes(search) ||
+                                        p.clientName?.toLowerCase().includes(search));
+                                });
+
+                                if (filtered.length === 0) {
+                                    return (
+                                        <div className="py-8 text-center border border-dashed border-neutral-800 rounded-xl">
+                                            <p className="text-xs text-neutral-600 font-medium">No projects matching search</p>
+                                        </div>
+                                    );
+                                }
+
+                                return filtered.map(proj => (
+                                    <button
+                                        key={proj.id}
+                                        type="button"
+                                        onClick={() => {
+                                            console.log("Selected project:", proj.name);
+                                            setSelectedProject(proj);
+                                        }}
+                                        className={`w-full text-left px-4 py-3 rounded-xl border transition-all flex items-center justify-between group ${selectedProject?.id === proj.id
+                                            ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-500/10'
+                                            : 'bg-neutral-900/50 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900'
+                                            }`}
+                                    >
+                                        <div className="truncate pr-4">
+                                            <p className={`text-sm font-bold truncate ${selectedProject?.id === proj.id ? 'text-white' : 'text-neutral-300'}`}>{proj.name}</p>
+                                            <p className="text-[10px] uppercase font-bold text-neutral-600 mt-0.5">{proj.clientName || 'No Client'}</p>
+                                        </div>
+                                        <div className={`p-1.5 rounded-lg transition-all ${selectedProject?.id === proj.id ? 'bg-indigo-500 text-white' : 'bg-neutral-800 text-neutral-600'}`}>
+                                            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${selectedProject?.id === proj.id ? 'rotate-90' : ''}`} />
+                                        </div>
+                                    </button>
+                                ));
+                            })()}
                         </div>
                     </section>
 
