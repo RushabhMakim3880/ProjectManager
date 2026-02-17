@@ -35,6 +35,19 @@ export const calculateProjectContributions = async (projectId: string) => {
     // 2. Calculate contributions per partner
     const partnerContributions: Record<string, number> = {};
 
+    // Ensure all leads are in the list at minimum (0%)
+    const leadIds = [
+        project.projectLeadId,
+        project.techLeadId,
+        project.commsLeadId,
+        project.qaLeadId,
+        project.salesOwnerId
+    ].filter(id => id && id.trim() !== "");
+
+    leadIds.forEach(id => {
+        if (!partnerContributions[id]) partnerContributions[id] = 0;
+    });
+
     for (const category in categoryData) {
         const data = categoryData[category]!;
         const { totalEffort, partnerEffort } = data;
@@ -63,7 +76,9 @@ export const calculateProjectContributions = async (projectId: string) => {
             percentage,
         }));
 
-        await tx.contribution.createMany({ data: createData });
+        if (createData.length > 0) {
+            await tx.contribution.createMany({ data: createData });
+        }
     });
 
     return partnerContributions;

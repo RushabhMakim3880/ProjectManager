@@ -30,7 +30,6 @@ import {
 import ContributionList from '@/components/ContributionList';
 import FinancialVisualizer from '@/components/FinancialVisualizer';
 import TaskManager from '@/components/TaskManager';
-import { TaskKanban } from '@/components/TaskKanban';
 import FinancialBreakdown from '@/components/FinancialBreakdown';
 import ProjectLedger from '@/components/ProjectLedger';
 import api from '@/lib/api';
@@ -43,7 +42,6 @@ export default function ProjectDetailsPage() {
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('financials');
-    const [taskViewMode, setTaskViewMode] = useState<'list' | 'kanban'>('kanban');
 
     const fetchProject = async () => {
         try {
@@ -240,36 +238,14 @@ export default function ProjectDetailsPage() {
                             <div className="glass-card p-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Workflow Management</h4>
-                                    <div className="flex gap-1 p-1 bg-neutral-950 rounded-xl border border-neutral-800">
-                                        <button
-                                            onClick={() => setTaskViewMode('kanban')}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${taskViewMode === 'kanban' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-neutral-500 hover:text-neutral-300'}`}
-                                        >
-                                            Kanban
-                                        </button>
-                                        <button
-                                            onClick={() => setTaskViewMode('list')}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${taskViewMode === 'list' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-neutral-500 hover:text-neutral-300'}`}
-                                        >
-                                            Classic List
-                                        </button>
-                                    </div>
                                 </div>
 
-                                {taskViewMode === 'kanban' ? (
-                                    <TaskKanban
-                                        projectId={id}
-                                        tasks={project.tasks || []}
-                                        onTaskUpdate={fetchProject}
-                                    />
-                                ) : (
-                                    <TaskManager
-                                        projectId={id}
-                                        tasks={project.tasks || []}
-                                        categories={Object.keys(weights)}
-                                        onTaskUpdate={fetchProject}
-                                    />
-                                )}
+                                <TaskManager
+                                    projectId={id}
+                                    tasks={project.tasks || []}
+                                    categories={Object.keys(weights)}
+                                    onTaskUpdate={fetchProject}
+                                />
                             </div>
 
                             <div className="glass-card p-8 space-y-8">

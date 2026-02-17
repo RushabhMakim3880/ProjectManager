@@ -79,7 +79,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
                 name,
                 category,
                 effortWeight: effortWeight !== undefined ? Number(effortWeight) : undefined,
-                assignedPartnerId,
+                assignedPartnerId: assignedPartnerId === "" ? null : assignedPartnerId,
                 completionPercent: finalPercent !== undefined ? Number(finalPercent) : undefined,
                 timeSpent: timeSpent !== undefined ? Number(timeSpent) : undefined,
                 status: finalStatus,
