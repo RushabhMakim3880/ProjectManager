@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton-loader";
 import { fetchCompanySummary, fetchProjects, FinancialSummary, ProjectSummary } from '@/lib/api';
 import { BadgeDollarSign, Briefcase, TrendingUp, Users } from 'lucide-react';
 

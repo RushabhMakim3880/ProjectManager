@@ -5,7 +5,7 @@ import { fetchCompanySummary, fetchTransactions, FinancialSummary, Transaction }
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton-loader";
 import { TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
 
 export default function FinancialsPage() {

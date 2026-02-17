@@ -22,7 +22,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton-loader";
 import { MoreHorizontal, Plus, Search, Filter } from 'lucide-react';
 
 export default function ProjectsPage() {
