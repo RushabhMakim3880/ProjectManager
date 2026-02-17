@@ -65,8 +65,8 @@ app.post('/api/auth/login', express.json(), async (req: Request, res: Response) 
     }
 });
 
-// MOUNT ROUTERS DIRECTLY
-app.use('/api/projects', async (req, res, next) => {
+// MOUNT ROUTERS DIRECTLY (With JSON parsing for POST/PUT requests)
+app.use('/api/projects', express.json(), async (req, res, next) => {
     try {
         console.log('BRIDGE_PROJECTS_START');
         const { default: router } = await import('../backend/src/routes/projectRoutes.js');
@@ -82,7 +82,7 @@ app.use('/api/projects', async (req, res, next) => {
     }
 });
 
-app.use('/api/partners', async (req, res, next) => {
+app.use('/api/partners', express.json(), async (req, res, next) => {
     try {
         console.log('BRIDGE_PARTNERS_START');
         const { default: router } = await import('../backend/src/routes/partnerRoutes.js');
@@ -97,7 +97,7 @@ app.use('/api/partners', async (req, res, next) => {
     }
 });
 
-app.use('/api/auth', async (req, res, next) => {
+app.use('/api/auth', express.json(), async (req, res, next) => {
     try {
         console.log('BRIDGE_AUTH_START');
         const { default: router } = await import('../backend/src/routes/authRoutes.js');
@@ -112,21 +112,33 @@ app.use('/api/auth', async (req, res, next) => {
     }
 });
 
-app.use('/api/invitations', async (req, res, next) => {
+app.use('/api/invitations', express.json(), async (req, res, next) => {
     try {
+        console.log('BRIDGE_INVITATIONS_START');
         const { default: router } = await import('../backend/src/routes/invitationRoutes.js');
         router(req, res, next);
     } catch (err: any) {
-        res.status(500).json({ error: 'Invitation Router Failed', message: err.message });
+        console.error('BRIDGE_INVITATIONS_FAILURE:', err);
+        res.status(500).json({
+            error: 'Invitation Router Failed',
+            message: err.message,
+            stack: err.stack
+        });
     }
 });
 
-app.use('/api/audit', async (req, res, next) => {
+app.use('/api/audit', express.json(), async (req, res, next) => {
     try {
+        console.log('BRIDGE_AUDIT_START');
         const { default: router } = await import('../backend/src/routes/auditRoutes.js');
         router(req, res, next);
     } catch (err: any) {
-        res.status(500).json({ error: 'Audit Router Failed', message: err.message });
+        console.error('BRIDGE_AUDIT_FAILURE:', err);
+        res.status(500).json({
+            error: 'Audit Router Failed',
+            message: err.message,
+            stack: err.stack
+        });
     }
 });
 

@@ -98,8 +98,9 @@ export const acceptInvitation = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Invalid or expired invitation' });
         }
 
-        const bcrypt = await import('bcrypt');
-        const hashedPassword = await bcrypt.default.hash(password, 10);
+        const bcryptPkg = await import('bcryptjs');
+        const bcrypt = (bcryptPkg as any).default || bcryptPkg;
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create User and Partner in a transaction
         const result = await prisma.$transaction(async (tx: any) => {
