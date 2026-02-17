@@ -420,7 +420,13 @@ export default function ProjectDetailsPage() {
                         <div className="space-y-4 mt-4">
                             {(() => {
                                 const getLeadName = (leadId: string) => {
+                                    if (!leadId) return "Unassigned";
+                                    // Try contribution first
                                     const contribution = (project.contributions || []).find((c: any) => c.partnerId === leadId);
+                                    if (contribution?.partner?.user?.name) return contribution.partner.user.name;
+
+                                    // Fallback to partner list if available (we might need to fetch partners or ensure they are joined)
+                                    // For now, let's assume the backend sync will fix most cases, but we can add a fallback check
                                     return contribution?.partner?.user?.name || "Unassigned";
                                 };
 

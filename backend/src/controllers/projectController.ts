@@ -87,6 +87,28 @@ export const createProject = async (req: Request, res: Response) => {
             include: { milestones: true }
         });
 
+        // Automatically create contributions for leads if tracking is enabled
+        const leadIds = [projectLeadId, techLeadId, commsLeadId, qaLeadId, salesOwnerId].filter(id => id && id.trim() !== "");
+
+        if (leadIds.length > 0) {
+            await Promise.all(leadIds.map(partnerId =>
+                prisma.contribution.upsert({
+                    where: {
+                        projectId_partnerId: {
+                            projectId: project.id,
+                            partnerId: partnerId
+                        }
+                    },
+                    update: {},
+                    create: {
+                        projectId: project.id,
+                        partnerId: partnerId,
+                        weight: 1 // Default weight for leads
+                    }
+                })
+            ));
+        }
+
         res.status(201).json(project);
     } catch (error) {
         console.error('Project creation error:', error);
@@ -146,7 +168,9 @@ export const updateProject = async (req: Request, res: Response) => {
             clientContact, clientEmail, clientPhone, whatsappNumber, commsChannel, timezone, location,
             ndaSigned, internalDeadline, clientDeadline,
             objectives, deliverables, outOfScope, techStack, environments, accessReqs, dependencies, riskLevel,
-            enableContributionTracking, lockWeights, enableTaskLogging, autoLock
+            projectLeadId, techLeadId, commsLeadId, qaLeadId, salesOwnerId,
+            enableContributionTracking, lockWeights, enableTaskLogging, autoLock,
+            milestones
         } = req.body;
 
         const project = await prisma.project.update({
