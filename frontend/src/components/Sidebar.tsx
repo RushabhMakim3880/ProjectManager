@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
     Briefcase,
@@ -34,6 +34,13 @@ const navItems = [
 
 export default function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
+
+    const handleLogout = () => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        router.push('/login');
+    };
 
     return (
         <aside className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col h-full">
@@ -72,7 +79,10 @@ export default function Sidebar() {
             </nav>
 
             <div className="p-4 border-t border-neutral-800">
-                <button className="flex items-center gap-3 w-full px-3 py-2.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-all group">
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-all group"
+                >
                     <LogOut className="w-5 h-5 text-neutral-500 group-hover:text-red-400" />
                     Logout
                 </button>

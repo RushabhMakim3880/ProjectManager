@@ -65,6 +65,8 @@ export default function SettingsPage() {
         }
     };
 
+    const isAdmin = user?.role === 'ADMIN';
+
     return (
         <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div>
@@ -95,7 +97,9 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         )}
-                        <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Profile editing is managed by system administrator.</p>
+                        <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">
+                            {isAdmin ? "Profile editing is centralized for consistency." : "Profile editing is managed by system administrator."}
+                        </p>
                     </div>
                 </section>
 
@@ -116,6 +120,7 @@ export default function SettingsPage() {
                                     className="input-field"
                                     value={systemSettings.companyName}
                                     onChange={(e) => setSystemSettings({ ...systemSettings, companyName: e.target.value })}
+                                    disabled={!isAdmin}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -126,6 +131,7 @@ export default function SettingsPage() {
                                     value={systemSettings.companyLogo || ''}
                                     onChange={(e) => setSystemSettings({ ...systemSettings, companyLogo: e.target.value })}
                                     placeholder="https://..."
+                                    disabled={!isAdmin}
                                 />
                             </div>
                             <div className="space-y-2 md:col-span-2">
@@ -135,6 +141,7 @@ export default function SettingsPage() {
                                     className="input-field"
                                     value={systemSettings.companyAddress || ''}
                                     onChange={(e) => setSystemSettings({ ...systemSettings, companyAddress: e.target.value })}
+                                    disabled={!isAdmin}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -144,6 +151,7 @@ export default function SettingsPage() {
                                     className="input-field"
                                     value={systemSettings.companyEmail || ''}
                                     onChange={(e) => setSystemSettings({ ...systemSettings, companyEmail: e.target.value })}
+                                    disabled={!isAdmin}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -153,6 +161,7 @@ export default function SettingsPage() {
                                     className="input-field"
                                     value={systemSettings.companyTaxId || ''}
                                     onChange={(e) => setSystemSettings({ ...systemSettings, companyTaxId: e.target.value })}
+                                    disabled={!isAdmin}
                                 />
                             </div>
                         </div>
@@ -167,6 +176,7 @@ export default function SettingsPage() {
                                         className="input-field"
                                         value={systemSettings.bankName || ''}
                                         onChange={(e) => setSystemSettings({ ...systemSettings, bankName: e.target.value })}
+                                        disabled={!isAdmin}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -176,6 +186,7 @@ export default function SettingsPage() {
                                         className="input-field"
                                         value={systemSettings.bankAccountNumber || ''}
                                         onChange={(e) => setSystemSettings({ ...systemSettings, bankAccountNumber: e.target.value })}
+                                        disabled={!isAdmin}
                                     />
                                 </div>
                             </div>
@@ -191,17 +202,21 @@ export default function SettingsPage() {
                         </h2>
                     </div>
                     <div className="p-6 divide-y divide-neutral-800">
-                        <div className="py-4 flex items-center justify-between group cursor-not-allowed opacity-50">
+                        <div className={`py-4 flex items-center justify-between group ${isAdmin ? 'cursor-pointer hover:bg-white/5 px-2 -mx-2 rounded-xl transition-all' : 'cursor-not-allowed opacity-50'}`}>
                             <div>
                                 <p className="text-sm font-medium text-white">Two-Factor Authentication</p>
-                                <p className="text-xs text-neutral-500 mt-1">Contact admin to enable secure MFA</p>
+                                <p className="text-xs text-neutral-500 mt-1">
+                                    {isAdmin ? "Standard TOTP/Email MFA available" : "Contact admin to enable secure MFA"}
+                                </p>
                             </div>
                             <ChevronRight className="w-5 h-5 text-neutral-700" />
                         </div>
-                        <div className="py-4 flex items-center justify-between group cursor-not-allowed opacity-50">
+                        <div className={`py-4 flex items-center justify-between group ${isAdmin ? 'cursor-pointer hover:bg-white/5 px-2 -mx-2 rounded-xl transition-all' : 'cursor-not-allowed opacity-50'}`}>
                             <div>
                                 <p className="text-sm font-medium text-white">Change Password</p>
-                                <p className="text-xs text-neutral-500 mt-1">Secure password updates coming soon</p>
+                                <p className="text-xs text-neutral-500 mt-1">
+                                    {isAdmin ? "Manage your secure administrative password" : "Secure password updates via admin request"}
+                                </p>
                             </div>
                             <ChevronRight className="w-5 h-5 text-neutral-700" />
                         </div>
@@ -249,14 +264,16 @@ export default function SettingsPage() {
 
                 <div className="flex justify-end gap-3 pt-4">
                     <button className="btn-outline" onClick={() => fetchData()}>Reset to Defaults</button>
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="btn-primary flex items-center gap-2 px-8 shadow-lg shadow-indigo-900/20 active:scale-95 transition-all text-white font-bold"
-                    >
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
+                    {isAdmin && (
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="btn-primary flex items-center gap-2 px-8 shadow-lg shadow-indigo-900/20 active:scale-95 transition-all text-white font-bold"
+                        >
+                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            {saving ? 'Saving...' : 'Save Changes'}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
