@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import ContributionList from '@/components/ContributionList';
 import FinancialVisualizer from '@/components/FinancialVisualizer';
+import TaskManager from '@/components/TaskManager';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 
@@ -34,19 +35,32 @@ export default function ProjectDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('financials');
 
+    const fetchProject = async () => {
+        try {
+            const res = await api.get(`/projects/${id}`);
+            setProject(res.data);
+        } catch (err) {
+            console.error("Failed to fetch project", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchProject = async () => {
-            try {
-                const res = await api.get(`/projects/${id}`);
-                setProject(res.data);
-            } catch (err) {
-                console.error("Failed to fetch project", err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchProject();
     }, [id]);
+
+    const handleRecalculate = async () => {
+        try {
+            setLoading(true);
+            await api.post(`/projects/${id}/recalculate`);
+            await fetchProject();
+        } catch (err) {
+            console.error("Recalculation failed", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -98,7 +112,10 @@ export default function ProjectDetailsPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <button className="btn-outline flex items-center gap-2 px-6">
+                    <button
+                        onClick={handleRecalculate}
+                        className="btn-outline flex items-center gap-2 px-6"
+                    >
                         <RefreshCw className="w-4 h-4" /> Recalculate
                     </button>
                     <button className="btn-primary flex items-center gap-2 px-8 shadow-lg shadow-indigo-500/20">
@@ -206,6 +223,15 @@ export default function ProjectDetailsPage() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className="glass-card p-6">
+                                <TaskManager
+                                    projectId={id}
+                                    tasks={project.tasks || []}
+                                    categories={Object.keys(weights)}
+                                    onTaskUpdate={fetchProject}
+                                />
                             </div>
 
                             <div className="glass-card p-8 space-y-8">

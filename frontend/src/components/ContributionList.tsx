@@ -5,9 +5,12 @@ import { User, Award, Percent } from 'lucide-react';
 
 interface Contribution {
     partnerId: string;
-    partnerName: string;
     percentage: number;
-    tasksCompleted: number;
+    partner: {
+        user: {
+            name: string;
+        };
+    };
 }
 
 export default function ContributionList({ contributions }: { contributions: Contribution[] }) {
@@ -25,9 +28,9 @@ export default function ContributionList({ contributions }: { contributions: Con
                             <User className="w-5 h-5 text-neutral-400" />
                         </div>
                         <div>
-                            <p className="font-medium text-neutral-100">{c.partnerName}</p>
+                            <p className="font-medium text-neutral-100">{c.partner.user.name}</p>
                             <p className="text-xs text-neutral-500 flex items-center gap-1">
-                                < Award className="w-3 h-3" /> {c.tasksCompleted} tasks contribution
+                                <Award className="w-3 h-3" /> Contribution Share
                             </p>
                         </div>
                     </div>
