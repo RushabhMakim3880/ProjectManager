@@ -1,17 +1,8 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 
-// STATIC IMPORTS FOR VERCEL BUNDLING
-// These ensure Vercel's NFT (Node File Trace) correctly includes the backend files.
-import projectRoutes from '../backend/src/routes/projectRoutes.js';
-import partnerRoutes from '../backend/src/routes/partnerRoutes.js';
-import authRoutes from '../backend/src/routes/authRoutes.js';
-import invitationRoutes from '../backend/src/routes/invitationRoutes.js';
-import auditRoutes from '../backend/src/routes/auditRoutes.js';
-import systemRoutes from '../backend/src/routes/systemRoutes.js';
-import agreementRoutes from '../backend/src/routes/agreementRoutes.js';
-import payoutRoutes from '../backend/src/routes/payoutRoutes.js';
-import financeRoutes from '../backend/src/routes/financeRoutes.js';
+// ROBUST API BRIDGE v6
+// Using dynamic imports to bypass startup crashes.
 
 const app = express();
 
@@ -36,15 +27,53 @@ app.get('/api/ping', (req: Request, res: Response) => {
 });
 
 // MOUNT ROUTERS
-app.use('/api/projects', projectRoutes);
-app.use('/api/partners', partnerRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/invitations', invitationRoutes);
-app.use('/api/audit', auditRoutes);
-app.use('/api/system', systemRoutes);
-app.use('/api/agreements', agreementRoutes);
-app.use('/api/payouts', payoutRoutes);
-app.use('/api/finance', financeRoutes);
+// Using dynamic imports to prevent startup crashes if a module fails to load.
+const mountBridge = (path: string, routeModulePath: string, name: string) => {
+    app.use(path, express.json(), async (req, res, next) => {
+        try {
+            console.log(`BRIDGE_${name}_START`);
+            const { default: router } = await import(routeModulePath);
+            router(req, res, next);
+        } catch (err: any) {
+            console.error(`BRIDGE_${name}_FAILURE:`, err);
+            res.status(500).json({
+                error: `${name} Router Failed`,
+                message: err.message,
+                stack: err.stack,
+                hint: 'Check if all backend dependencies are resolving correctly'
+            });
+        }
+    });
+};
+
+mountBridge('/api/projects', '../backend/src/routes/projectRoutes.js', 'PROJECTS');
+mountBridge('/api/partners', '../backend/src/routes/partnerRoutes.js', 'PARTNERS');
+mountBridge('/api/auth', '../backend/src/routes/authRoutes.js', 'AUTH');
+mountBridge('/api/invitations', '../backend/src/routes/invitationRoutes.js', 'INVITATIONS');
+mountBridge('/api/audit', '../backend/src/routes/auditRoutes.js', 'AUDIT');
+mountBridge('/api/system', '../backend/src/routes/systemRoutes.js', 'SYSTEM');
+mountBridge('/api/agreements', '../backend/src/routes/agreementRoutes.js', 'AGREEMENTS');
+mountBridge('/api/payouts', '../backend/src/routes/payoutRoutes.js', 'PAYOUTS');
+mountBridge('/api/finance', '../backend/src/routes/financeRoutes.js', 'FINANCE');
+
+app.get('/api/debug/db', async (req: Request, res: Response) => {
+    try {
+        const PrismaPkg = await import('@prisma/client');
+        const { PrismaClient } = PrismaPkg.default || PrismaPkg;
+        const prisma = new (PrismaClient as any)();
+        await prisma.$connect();
+        const userCount = await prisma.user.count();
+        await prisma.$disconnect();
+        res.json({ status: 'OK', message: 'Database connected successfully', userCount });
+    } catch (err: any) {
+        console.error('DB_CONNECT_ERROR:', err);
+        res.status(500).json({
+            error: 'Database Connection Failed',
+            message: err.message,
+            stack: err.stack
+        });
+    }
+});
 
 app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     try {
