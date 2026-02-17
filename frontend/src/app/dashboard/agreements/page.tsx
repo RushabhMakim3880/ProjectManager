@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { FileText, CheckCircle, ShieldCheck, Download, Clock } from 'lucide-react';
+import { FileText, CheckCircle, ShieldCheck, Download, Clock, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 
 export default function AgreementViewer() {
+    const router = useRouter();
     const [signed, setSigned] = useState(false);
     const [agreement, setAgreement] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [signing, setSigning] = useState(false);
 
     const fetchAgreement = async () => {
         setLoading(true);
@@ -24,6 +27,20 @@ export default function AgreementViewer() {
     useEffect(() => {
         fetchAgreement();
     }, []);
+
+    const handleSign = async () => {
+        setSigning(true);
+        try {
+            await api.post('/agreements/sign');
+            alert('Agreement signed successfully!');
+            router.push('/dashboard');
+        } catch (err) {
+            console.error("Failed to sign agreement", err);
+            alert('Failed to sign agreement.');
+        } finally {
+            setSigning(false);
+        }
+    };
 
     const defaultAgreement = {
         version: 1,
@@ -80,10 +97,12 @@ export default function AgreementViewer() {
                     </div>
 
                     <button
-                        disabled={!signed}
-                        className={`px-8 py-3 rounded-xl font-bold transition-all ${signed ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-900/20 active:scale-95' : 'bg-neutral-800 text-neutral-600 cursor-not-allowed'}`}
+                        onClick={handleSign}
+                        disabled={!signed || signing}
+                        className={`px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${signed && !signing ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-900/20 active:scale-95' : 'bg-neutral-800 text-neutral-600 cursor-not-allowed'}`}
                     >
-                        Digital Signature & Acceptance
+                        {signing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                        {signing ? 'Signing...' : 'Digital Signature & Acceptance'}
                     </button>
                 </div>
             </div>

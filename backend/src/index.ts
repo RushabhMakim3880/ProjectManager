@@ -23,6 +23,7 @@ import projectRoutes from './routes/projectRoutes.js';
 import agreementRoutes from './routes/agreementRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import invitationRoutes from './routes/invitationRoutes.js';
+import systemRoutes from './routes/systemRoutes.js';
 import { finalizeProject } from './controllers/payoutController.js';
 import { logAction } from './middleware/auditMiddleware.js';
 import { authenticate, authorize } from './middleware/authMiddleware.js';
@@ -33,6 +34,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/agreements', agreementRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/invitations', invitationRoutes);
+app.use('/api/system', systemRoutes);
 
 app.post('/api/projects/:projectId/finalize', authenticate, authorize(['ADMIN']), logAction('FINALIZE', 'PROJECT'), finalizeProject);
 

@@ -11,7 +11,8 @@ import {
     FileText,
     PieChart,
     LogOut,
-    ShieldAlert
+    ShieldAlert,
+    ShieldCheck
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -25,7 +26,8 @@ const navItems = [
     { name: 'Projects', icon: Briefcase, href: '/dashboard/projects' },
     { name: 'Partners', icon: Users, href: '/dashboard/partners' },
     { name: 'Financials', icon: PieChart, href: '/dashboard/financials' },
-    { name: 'Agreements', icon: FileText, href: '/dashboard/agreements' },
+    { name: 'Documents', icon: FileText, href: '/dashboard/documents' },
+    { name: 'Agreements', icon: ShieldCheck, href: '/dashboard/agreements' },
     { name: 'Audit Logs', icon: ShieldAlert, href: '/dashboard/logs', adminOnly: true },
     { name: 'Settings', icon: Settings, href: '/dashboard/settings' },
 ];

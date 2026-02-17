@@ -8,32 +8,65 @@ import {
     Smartphone,
     Save,
     ChevronRight,
-    Moon
+    Moon,
+    Briefcase,
+    Loader2
 } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function SettingsPage() {
     const [user, setUser] = useState<any>(null);
+    const [systemSettings, setSystemSettings] = useState<any>({
+        companyName: '',
+        companyAddress: '',
+        companyEmail: '',
+        companyPhone: '',
+        companyWebsite: '',
+        companyTaxId: '',
+        bankName: '',
+        bankAccountName: '',
+        bankAccountNumber: '',
+        bankIfsc: '',
+        companyLogo: ''
+    });
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
-    const fetchProfile = async () => {
+    const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/auth/me');
-            setUser(res.data);
+            const [userRes, systemRes] = await Promise.all([
+                api.get('/auth/me'),
+                api.get('/system/settings')
+            ]);
+            setUser(userRes.data);
+            setSystemSettings(systemRes.data || {});
         } catch (err) {
-            console.error("Failed to fetch user profile", err);
+            console.error("Failed to fetch settings", err);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchProfile();
+        fetchData();
     }, []);
 
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await api.put('/system/settings', systemSettings);
+            alert('Settings updated successfully!');
+        } catch (err) {
+            console.error("Failed to update settings", err);
+            alert('Failed to update settings.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
-        <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             <div>
                 <h1 className="text-2xl font-bold text-white mb-1">Preferences & Security</h1>
                 <p className="text-neutral-500 text-sm">Configure your personal experience and system-wide parameters</p>
@@ -63,6 +96,90 @@ export default function SettingsPage() {
                             </div>
                         )}
                         <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Profile editing is managed by system administrator.</p>
+                    </div>
+                </section>
+
+                {/* Company Profile Section */}
+                <section className="glass-card overflow-hidden">
+                    <div className="p-6 border-b border-neutral-800 bg-neutral-900/40">
+                        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <Briefcase className="w-5 h-5 text-emerald-400" />
+                            Company Configuration
+                        </h2>
+                    </div>
+                    <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-neutral-400">Company Name</label>
+                                <input
+                                    type="text"
+                                    className="input-field"
+                                    value={systemSettings.companyName}
+                                    onChange={(e) => setSystemSettings({ ...systemSettings, companyName: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-neutral-400">Logo URL</label>
+                                <input
+                                    type="text"
+                                    className="input-field"
+                                    value={systemSettings.companyLogo || ''}
+                                    onChange={(e) => setSystemSettings({ ...systemSettings, companyLogo: e.target.value })}
+                                    placeholder="https://..."
+                                />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-sm font-medium text-neutral-400">Company Address</label>
+                                <input
+                                    type="text"
+                                    className="input-field"
+                                    value={systemSettings.companyAddress || ''}
+                                    onChange={(e) => setSystemSettings({ ...systemSettings, companyAddress: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-neutral-400">Company Email</label>
+                                <input
+                                    type="email"
+                                    className="input-field"
+                                    value={systemSettings.companyEmail || ''}
+                                    onChange={(e) => setSystemSettings({ ...systemSettings, companyEmail: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-neutral-400">Tax ID / PAN</label>
+                                <input
+                                    type="text"
+                                    className="input-field"
+                                    value={systemSettings.companyTaxId || ''}
+                                    onChange={(e) => setSystemSettings({ ...systemSettings, companyTaxId: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-neutral-800">
+                            <h3 className="text-sm font-bold text-neutral-500 uppercase tracking-widest mb-4">Bank Details (For Payouts/Agreements)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-neutral-400">Bank Name</label>
+                                    <input
+                                        type="text"
+                                        className="input-field"
+                                        value={systemSettings.bankName || ''}
+                                        onChange={(e) => setSystemSettings({ ...systemSettings, bankName: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-neutral-400">Account Number</label>
+                                    <input
+                                        type="text"
+                                        className="input-field"
+                                        value={systemSettings.bankAccountNumber || ''}
+                                        onChange={(e) => setSystemSettings({ ...systemSettings, bankAccountNumber: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -131,9 +248,14 @@ export default function SettingsPage() {
                 </section>
 
                 <div className="flex justify-end gap-3 pt-4">
-                    <button className="btn-outline">Reset to Defaults</button>
-                    <button className="btn-primary flex items-center gap-2 px-8 shadow-lg shadow-indigo-900/20 active:scale-95 transition-all">
-                        <Save className="w-4 h-4" /> Save Changes
+                    <button className="btn-outline" onClick={() => fetchData()}>Reset to Defaults</button>
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="btn-primary flex items-center gap-2 px-8 shadow-lg shadow-indigo-900/20 active:scale-95 transition-all text-white font-bold"
+                    >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
             </div>
