@@ -10,7 +10,7 @@ app.use(cors());
 
 app.get('/api/ping', (req: Request, res: Response) => {
     res.json({
-        msg: 'Bridge is alive (Robust Mode)',
+        msg: 'Bridge is alive (Robust Mode v4 - Seed Fix)',
         timestamp: new Date().toISOString(),
         env_check: {
             has_db: !!process.env.DATABASE_URL,
@@ -159,7 +159,7 @@ app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
         const hashedPassword = await bcrypt.hash('Password@123', 10);
         const user = await prisma.user.upsert({
             where: { email },
-            update: {},
+            update: { role: 'ADMIN' },
             create: { email, password: hashedPassword, name: 'System Admin', role: 'ADMIN' }
         });
         res.json({ msg: 'Admin seeded', user });
