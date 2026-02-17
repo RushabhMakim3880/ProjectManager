@@ -64,6 +64,27 @@ export const calculateProjectContributions = async (projectId: string) => {
         }
     }
 
+    // 2.1 Normalize total to 100%
+    const totalRaw = Object.values(partnerContributions).reduce((a, b) => a + b, 0);
+    if (totalRaw > 0) {
+        for (const pid in partnerContributions) {
+            partnerContributions[pid] = Number(((partnerContributions[pid]! / totalRaw) * 100).toFixed(2));
+        }
+    } else if (leadIds.length > 0) {
+        // If no effort yet, distribute equally among leads to maintain 100% total
+        const equalShare = Number((100 / leadIds.length).toFixed(2));
+        leadIds.forEach(id => {
+            partnerContributions[id] = equalShare;
+        });
+    }
+
+    // Final check to handle rounding errors and ensure exactly 100%
+    const finalTotal = Object.values(partnerContributions).reduce((a, b) => a + b, 0);
+    if (finalTotal > 0 && finalTotal !== 100) {
+        const firstId = Object.keys(partnerContributions)[0]!;
+        partnerContributions[firstId] = Number((partnerContributions[firstId]! + (100 - finalTotal)).toFixed(2));
+    }
+
     // 3. Update database
     await prisma.$transaction(async (tx: any) => {
         // Clear old contributions

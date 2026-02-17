@@ -11,33 +11,59 @@ export interface FinancialMetrics {
 }
 
 export class FinancialService {
+    private static readonly BUSINESS_RESERVE_PERCENT = 0.10;
+    private static readonly RELIGIOUS_PERCENT = 0.05;
+    private static readonly BASE_POOL_PERCENT = 0.20;
+    private static readonly PERFORMANCE_POOL_PERCENT = 0.80;
+
     /**
-     * Calculates all pools and allocations for a project based on its balance.
+     * Deterministic profit-sharing calculation module.
+     * Computes exact payouts based on revenue and contribution percentages.
      */
-    static calculateMetrics(totalValue: number, actualBalance: number): FinancialMetrics {
-        // Business Reserve (10%)
-        const businessReserve = actualBalance * 0.10;
+    static calculateProfitSharing(GPR: number, partners: { id?: string; name: string; contributionPercent: number }[]) {
+        // VALIDATION
+        if (GPR < 0) throw new Error('GPR must be >= 0');
+        if (partners.length === 0) throw new Error('At least one partner must exist');
 
-        // Religious/Charity Allocation (5%)
-        const religiousAllocation = actualBalance * 0.05;
+        const totalContribution = partners.reduce((sum, p) => sum + p.contributionPercent, 0);
+        // Using a small epsilon for float comparison if needed, but here we expect strictly 100
+        if (Math.abs(totalContribution - 100) > 0.1) {
+            throw new Error(`Sum of contributionPercent must equal 100. Current total: ${totalContribution}%`);
+        }
 
-        // Net Distributable (85% of balance)
-        const netDistributable = actualBalance - (businessReserve + religiousAllocation);
+        // STEP 1 — RESERVE CALCULATION
+        const businessReserve = Number((GPR * this.BUSINESS_RESERVE_PERCENT).toFixed(2));
+        const religiousAllocation = Number((GPR * this.RELIGIOUS_PERCENT).toFixed(2));
+        const NDP = Number((GPR - (businessReserve + religiousAllocation)).toFixed(2));
 
-        // Base Pool (20% of net) - Distributed equally or by base weights
-        const basePool = netDistributable * 0.20;
+        // STEP 2 — SPLIT INTO POOLS
+        const basePool = Number((NDP * this.BASE_POOL_PERCENT).toFixed(2));
+        const performancePool = Number((NDP * this.PERFORMANCE_POOL_PERCENT).toFixed(2));
 
-        // Performance Pool (80% of net) - Distributed by project weights/performance
-        const performancePool = netDistributable * 0.80;
+        // STEP 3 — BASE SHARE PER PARTNER
+        const baseShareEach = Number((basePool / partners.length).toFixed(2));
 
+        // STEP 4 & 5 — PERFORMANCE SHARE & FINAL PAYOUT
+        const partnerResults = partners.map(partner => {
+            const performanceShare = Number((performancePool * (partner.contributionPercent / 100)).toFixed(2));
+            const finalPayout = Number((baseShareEach + performanceShare).toFixed(2));
+
+            return {
+                ...partner,
+                baseShare: baseShareEach,
+                performanceShare,
+                finalPayout
+            };
+        });
+
+        // STEP 6 — OUTPUT STRUCTURE
         return {
-            totalValue,
-            actualBalance,
             businessReserve,
             religiousAllocation,
-            netDistributable,
+            NDP,
             basePool,
-            performancePool
+            performancePool,
+            partners: partnerResults
         };
     }
 
@@ -47,37 +73,58 @@ export class FinancialService {
     static async recalculateProjectFinancials(projectId: string) {
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            include: { transactions: true }
+            include: {
+                transactions: true,
+                contributions: {
+                    include: { partner: { include: { user: true } } }
+                }
+            }
         });
 
         if (!project) throw new Error('Project not found');
 
-        // Calculate actual balance from ledger
-        const actualBalance = project.transactions.reduce((acc: number, t: any) => {
+        // Calculate actual balance (GPR) from ledger
+        const GPR = project.transactions.reduce((acc: number, t: any) => {
             return t.type === 'INCOME' ? acc + t.amount : acc - t.amount;
         }, 0);
 
-        const metrics = this.calculateMetrics(project.totalValue, actualBalance);
+        // Prepare partners for deterministic module
+        const partnersForCalc = project.contributions.map((c: any) => ({
+            id: c.partnerId,
+            name: c.partner.user.name,
+            contributionPercent: c.percentage
+        }));
+
+        // If no contributions exist, we can't calculate profit sharing accurately
+        if (partnersForCalc.length === 0) {
+            return await prisma.financial.upsert({
+                where: { projectId },
+                update: { actualBalance: GPR, totalValue: project.totalValue },
+                create: { projectId, actualBalance: GPR, totalValue: project.totalValue }
+            });
+        }
+
+        const metrics = this.calculateProfitSharing(GPR, partnersForCalc);
 
         // Update or create financial record
         return await prisma.financial.upsert({
             where: { projectId },
             update: {
-                totalValue: metrics.totalValue,
-                actualBalance: metrics.actualBalance,
+                totalValue: project.totalValue,
+                actualBalance: GPR,
                 businessReserve: metrics.businessReserve,
                 religiousAllocation: metrics.religiousAllocation,
-                netDistributable: metrics.netDistributable,
+                netDistributable: metrics.NDP,
                 basePool: metrics.basePool,
                 performancePool: metrics.performancePool,
             },
             create: {
                 projectId,
-                totalValue: metrics.totalValue,
-                actualBalance: metrics.actualBalance,
+                totalValue: project.totalValue,
+                actualBalance: GPR,
                 businessReserve: metrics.businessReserve,
                 religiousAllocation: metrics.religiousAllocation,
-                netDistributable: metrics.netDistributable,
+                netDistributable: metrics.NDP,
                 basePool: metrics.basePool,
                 performancePool: metrics.performancePool,
             }
@@ -85,9 +132,10 @@ export class FinancialService {
     }
 
     /**
-     * Calculates partner earnings based on contributions and performance pool.
+     * Helper to get partner earnings based on dynamic performance pool.
+     * Legacy helper - will be deprecated by the deterministic finalPayout.
      */
     static calculatePartnerEarnings(performancePool: number, contributionPercentage: number): number {
-        return (contributionPercentage / 100) * performancePool;
+        return Number(((contributionPercentage / 100) * performancePool).toFixed(2));
     }
 }

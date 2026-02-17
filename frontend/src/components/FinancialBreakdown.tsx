@@ -18,14 +18,20 @@ export default function FinancialBreakdown({ project }: FinancialBreakdownProps)
         .filter((t: any) => t.type === 'EXPENSE')
         .reduce((sum: number, t: any) => sum + t.amount, 0);
 
-    const actualBalance = totalIncome - totalExpenses;
+    const actualBalance = totalIncome - totalExpenses; // Used as GPR
 
-    const businessGrowth = latestFinancial?.businessReserve ?? (actualBalance * 0.10);
-    const religiousAllocation = latestFinancial?.religiousAllocation ?? (actualBalance * 0.05);
-    const netDistributable = latestFinancial?.netDistributable ?? (actualBalance - businessGrowth - religiousAllocation);
+    // Constants to match deterministic backend logic
+    const BUSINESS_RESERVE_PERCENT = 0.10;
+    const RELIGIOUS_PERCENT = 0.05;
+    const BASE_POOL_PERCENT = 0.20;
+    const PERFORMANCE_POOL_PERCENT = 0.80;
 
-    const basePoolTotal = latestFinancial?.basePool ?? (netDistributable * 0.20);
-    const performancePoolTotal = latestFinancial?.performancePool ?? (netDistributable * 0.80);
+    const businessGrowth = latestFinancial?.businessReserve ?? Number((actualBalance * BUSINESS_RESERVE_PERCENT).toFixed(2));
+    const religiousAllocation = latestFinancial?.religiousAllocation ?? Number((actualBalance * RELIGIOUS_PERCENT).toFixed(2));
+    const netDistributable = latestFinancial?.netDistributable ?? Number((actualBalance - businessGrowth - religiousAllocation).toFixed(2));
+
+    const basePoolTotal = latestFinancial?.basePool ?? Number((netDistributable * BASE_POOL_PERCENT).toFixed(2));
+    const performancePoolTotal = latestFinancial?.performancePool ?? Number((netDistributable * PERFORMANCE_POOL_PERCENT).toFixed(2));
 
     const partners = project.contributions || [];
 
@@ -143,11 +149,11 @@ export default function FinancialBreakdown({ project }: FinancialBreakdownProps)
                                 const totalCount = partnerTasks.length;
 
                                 const performanceShare = c.percentage; // This is the weighted share calculated by backend
-                                const performanceEarning = (performanceShare / 100) * performancePoolTotal;
+                                const performanceEarning = Number(((performanceShare / 100) * performancePoolTotal).toFixed(2));
 
-                                // Simplified base share distribution (equal for now)
-                                const baseEarning = basePoolTotal / (partners.length || 1);
-                                const totalEarning = performanceEarning + baseEarning;
+                                // Simplified base share distribution (equal as per deterministic rules)
+                                const baseEarning = Number((basePoolTotal / (partners.length || 1)).toFixed(2));
+                                const totalEarning = Number((performanceEarning + baseEarning).toFixed(2));
 
                                 return (
                                     <tr key={c.partnerId} className="hover:bg-neutral-800/30 transition-colors">
