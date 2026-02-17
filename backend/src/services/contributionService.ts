@@ -117,5 +117,10 @@ export const calculateFinancials = async (projectId: string) => {
         },
     });
 
-    return financial;
+    return {
+        ...financial,
+        totalIncome,
+        totalExpenses,
+        actualBalance
+    };
 };

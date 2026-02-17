@@ -119,7 +119,11 @@ export const getProjectById = async (req: Request, res: Response) => {
                 contributions: {
                     include: { partner: { include: { user: true } } },
                 },
-                financialRecords: true,
+                financialRecords: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1
+                },
+                transactions: true,
                 milestones: true,
             },
         });
