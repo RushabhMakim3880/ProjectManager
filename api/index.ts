@@ -66,6 +66,25 @@ app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     }
 });
 
+app.get('/api/debug/db', async (req: Request, res: Response) => {
+    try {
+        const PrismaPkg = await import('@prisma/client');
+        const { PrismaClient } = PrismaPkg.default || PrismaPkg;
+        const prisma = new (PrismaClient as any)();
+        await prisma.$connect();
+        const userCount = await prisma.user.count();
+        await prisma.$disconnect();
+        res.json({ status: 'OK', message: 'Database connected successfully', userCount });
+    } catch (err: any) {
+        console.error('DB_CONNECT_ERROR:', err);
+        res.status(500).json({
+            error: 'Database Connection Failed',
+            message: err.message,
+            stack: err.stack
+        });
+    }
+});
+
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: any) => {
     console.error('Global Error Handler:', err);
