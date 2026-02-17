@@ -125,43 +125,29 @@ export default function ProjectLedger({ projectId, onUpdate }: ProjectLedgerProp
     return (
         <div className="space-y-8">
             {/* Header / Summary Matrix */}
+            {/* Header / Summary Matrix */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="glass-card p-6 bg-emerald-500/5 border-emerald-500/20 group hover:border-emerald-500/40 transition-all relative overflow-hidden"
-                >
-                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                        <ArrowUpRight className="w-24 h-24" />
-                    </div>
-                    <div className="relative z-10 flex items-center justify-between mb-4">
-                        <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20">
-                            <TrendingUp className="w-5 h-5 shadow-[0_0_15px_rgba(52,211,153,0.3)]" />
+                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500">
+                            <TrendingUp className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest italic">Capital Inflow</span>
+                        <span className="text-xs font-medium text-neutral-400">Capital Inflow</span>
                     </div>
-                    <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1 leading-none">Total Realized Revenue</p>
-                    <h3 className="text-3xl font-black text-white tracking-tighter">₹{totalIncome.toLocaleString()}</h3>
-                </motion.div>
+                    <p className="text-sm text-neutral-500 mb-1">Total Realized Revenue</p>
+                    <h3 className="text-2xl font-bold text-white">₹{totalIncome.toLocaleString()}</h3>
+                </div>
 
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="glass-card p-6 bg-rose-500/5 border-rose-500/20 group hover:border-rose-500/40 transition-all relative overflow-hidden"
-                >
-                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                        <ArrowDownLeft className="w-24 h-24" />
-                    </div>
-                    <div className="relative z-10 flex items-center justify-between mb-4">
-                        <div className="p-2.5 bg-rose-500/10 rounded-xl text-rose-400 border border-rose-500/20">
-                            <ArrowDownLeft className="w-5 h-5 shadow-[0_0_15px_rgba(251,113,133,0.3)]" />
+                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="p-2 bg-rose-500/10 rounded-lg text-rose-500">
+                            <ArrowDownLeft className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black text-rose-500/60 uppercase tracking-widest italic">Asset Burn</span>
+                        <span className="text-xs font-medium text-neutral-400">Asset Burn</span>
                     </div>
-                    <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1 leading-none">Operational Expenses</p>
-                    <h3 className="text-3xl font-black text-white tracking-tighter">₹{totalExpenses.toLocaleString()}</h3>
-                </motion.div>
+                    <p className="text-sm text-neutral-500 mb-1">Operational Expenses</p>
+                    <h3 className="text-2xl font-bold text-white">₹{totalExpenses.toLocaleString()}</h3>
+                </div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}

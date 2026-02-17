@@ -197,29 +197,26 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
         <div className="space-y-6">
             <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter italic">
-                        <Layout className="w-5 h-5 text-indigo-500" />
+                    <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                        <Layout className="w-5 h-5 text-neutral-400" />
                         Technical Execution Matrix
                     </h3>
-                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-[0.2em] mt-1 ml-8">Scope Management & Resource Allocation</p>
+                    <p className="text-sm text-neutral-500 mt-1 ml-8">Scope Management & Resource Allocation</p>
                 </div>
                 <button
                     onClick={() => setIsCreating(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                    className="btn-primary flex items-center gap-2 px-4 py-2"
                 >
                     <Plus className="w-4 h-4" /> Initialize Task
                 </button>
             </div>
 
             {isCreating && (
-                <div className="glass-card p-8 border-indigo-500/30 bg-indigo-500/5 animate-in slide-in-from-top-4 duration-500 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
-                        <Plus className="w-48 h-48" />
-                    </div>
-                    <form onSubmit={handleCreateTask} className="relative z-10 space-y-6">
+                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 animate-in slide-in-from-top-4 duration-300">
+                    <form onSubmit={handleCreateTask} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Task Definition</label>
+                                <label className="text-xs font-medium text-neutral-400 ml-1">Task Definition</label>
                                 <input
                                     type="text"
                                     required
@@ -231,7 +228,7 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Classification</label>
+                                    <label className="text-xs font-medium text-neutral-400 ml-1">Classification</label>
                                     <select
                                         value={newTask.category}
                                         onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
@@ -243,7 +240,7 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Effort Matrix (1-10)</label>
+                                    <label className="text-xs font-medium text-neutral-400 ml-1">Effort Matrix (1-10)</label>
                                     <input
                                         type="number"
                                         required
@@ -258,7 +255,7 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                         </div>
                         <div className="flex flex-col md:flex-row gap-6">
                             <div className="flex-1 space-y-1.5">
-                                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Lead Assignment</label>
+                                <label className="text-xs font-medium text-neutral-400 ml-1">Lead Assignment</label>
                                 <select
                                     value={newTask.assignedPartnerId}
                                     onChange={(e) => setNewTask({ ...newTask, assignedPartnerId: e.target.value })}
@@ -290,7 +287,7 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                 </div>
             )}
 
-            <div className="glass-card overflow-hidden bg-neutral-900/20 border-neutral-800/50">
+            <div className="bg-neutral-900/20 border border-neutral-800 rounded-xl overflow-hidden">
                 <div className="divide-y divide-neutral-800/50">
                     {tasks.length > 0 ? (
                         tasks.map((task, idx) => (

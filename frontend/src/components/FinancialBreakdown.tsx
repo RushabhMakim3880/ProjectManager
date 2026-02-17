@@ -51,13 +51,13 @@ export default function FinancialBreakdown({ project }: FinancialBreakdownProps)
             {/* Header / Summary */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic">Financial Intelligence</h2>
-                    <p className="text-xs text-neutral-500 font-bold uppercase tracking-widest mt-1">Deterministic Profit Distribution Engine v2.0</p>
+                    <h2 className="text-2xl font-bold text-white">Financial Intelligence</h2>
+                    <p className="text-sm text-neutral-500 mt-1">Deterministic Profit Distribution Engine v2.0</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-2">
+                    <div className="px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                        <span className="text-[10px] font-black text-indigo-400 uppercase">Live Audit Active</span>
+                        <span className="text-xs font-medium text-indigo-400">Live Audit Active</span>
                     </div>
                 </div>
             </div>
@@ -70,33 +70,28 @@ export default function FinancialBreakdown({ project }: FinancialBreakdownProps)
                     { label: 'Actual Balance', value: actualBalance, icon: Scale, color: 'amber', desc: 'Funds In-Hand' },
                     { label: 'Net Profit Pool', value: netDistributable, icon: Wallet, color: 'emerald', desc: '85% Distributable' },
                 ].map((stat, i) => (
-                    <div key={i} className={`relative group overflow-hidden glass-card p-5 border-${stat.color}-500/20 bg-${stat.color}-500/5 hover:bg-${stat.color}-500/10 transition-all duration-500`}>
-                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
-                            <stat.icon className="w-24 h-24" />
-                        </div>
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className={`p-2 bg-${stat.color}-500/10 rounded-xl text-${stat.color}-400`}>
-                                    <stat.icon className="w-4 h-4" />
-                                </div>
-                                <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">{stat.label}</h3>
+                ].map((stat, i) => (
+                <div key={i} className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 relative overflow-hidden">
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className={`p-2 bg-${stat.color}-500/10 rounded-lg text-${stat.color}-400`}>
+                                <stat.icon className="w-4 h-4" />
                             </div>
-                            <div className="text-2xl font-black text-white tracking-tighter">₹{stat.value.toLocaleString()}</div>
-                            <p className="text-[9px] text-neutral-600 font-bold uppercase tracking-widest mt-1">{stat.desc}</p>
+                            <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">{stat.label}</h3>
                         </div>
+                        <div className="text-2xl font-bold text-white">₹{stat.value.toLocaleString()}</div>
+                        <p className="text-[10px] text-neutral-600 font-medium uppercase tracking-wider mt-1">{stat.desc}</p>
                     </div>
+                </div>
                 ))}
             </div>
 
             {/* Profit Pools Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 glass-card p-8 bg-neutral-900/40 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none">
-                        <PieChart className="w-64 h-64" />
-                    </div>
+                <div className="lg:col-span-2 bg-neutral-900 border border-neutral-800 rounded-xl p-8 relative overflow-hidden">
                     <div className="flex items-center justify-between mb-8 relative z-10">
                         <div>
-                            <h3 className="text-lg font-black text-white uppercase tracking-tight">Active Distributable Pools</h3>
+                            <h3 className="text-lg font-bold text-white">Active Distributable Pools</h3>
                             <p className="text-xs text-neutral-500 font-medium">Strategic split of the ₹{netDistributable.toLocaleString()} Net Reservoir</p>
                         </div>
                     </div>
