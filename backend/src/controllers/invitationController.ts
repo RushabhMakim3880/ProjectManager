@@ -36,8 +36,11 @@ export const createInvitation = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        // In a real app, send email here. For now, we return the token/url
-        const onboardingUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/onboarding/${token}`;
+        // Dynamically determine base URL to avoid mismatched deployment links
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers.host;
+        const baseUrl = process.env.FRONTEND_URL || `${protocol}://${host}`;
+        const onboardingUrl = `${baseUrl}/onboarding/${token}`;
 
         res.status(201).json({
             message: 'Invitation created',
