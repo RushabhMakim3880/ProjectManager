@@ -8,7 +8,9 @@ export const calculateProjectContributions = async (projectId: string) => {
 
     if (!project) throw new Error('Project not found');
 
-    const weights = project.weights as Record<string, number>;
+    const weights = typeof project.weights === 'string'
+        ? JSON.parse(project.weights) as Record<string, number>
+        : project.weights as Record<string, number>;
     const tasks = project.tasks;
 
     // 1. Group tasks by category and calculate total effort per category
