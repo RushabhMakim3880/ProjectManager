@@ -1,8 +1,17 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 
-// ROBUST API BRIDGE
-// This version mounts routers directly to bypass main backend initialization crashes.
+// STATIC IMPORTS FOR VERCEL BUNDLING
+// These ensure Vercel's NFT (Node File Trace) correctly includes the backend files.
+import projectRoutes from '../backend/src/routes/projectRoutes.js';
+import partnerRoutes from '../backend/src/routes/partnerRoutes.js';
+import authRoutes from '../backend/src/routes/authRoutes.js';
+import invitationRoutes from '../backend/src/routes/invitationRoutes.js';
+import auditRoutes from '../backend/src/routes/auditRoutes.js';
+import systemRoutes from '../backend/src/routes/systemRoutes.js';
+import agreementRoutes from '../backend/src/routes/agreementRoutes.js';
+import payoutRoutes from '../backend/src/routes/payoutRoutes.js';
+import financeRoutes from '../backend/src/routes/financeRoutes.js';
 
 const app = express();
 
@@ -16,7 +25,7 @@ app.options('*', cors()); // Enable pre-flight for all routes
 
 app.get('/api/ping', (req: Request, res: Response) => {
     res.json({
-        msg: 'Bridge is alive (Robust Mode v4 - Seed Fix)',
+        msg: 'Bridge is alive (Static Import Mode v5)',
         timestamp: new Date().toISOString(),
         env_check: {
             has_db: !!process.env.DATABASE_URL,
@@ -26,150 +35,16 @@ app.get('/api/ping', (req: Request, res: Response) => {
     });
 });
 
-// Direct Auth Handler REMOVED - Delegating to backend/src/routes/authRoutes.ts via bridge below
-// This prevents logic duplication and potential 500 errors from unmaintained inline code.
-
-// MOUNT ROUTERS DIRECTLY (With JSON parsing for POST/PUT requests)
-app.use('/api/projects', express.json(), async (req, res, next) => {
-    try {
-        console.log('BRIDGE_PROJECTS_START');
-        const { default: router } = await import('../backend/src/routes/projectRoutes.js');
-        router(req, res, next);
-    } catch (err: any) {
-        console.error('BRIDGE_PROJECTS_FAILURE:', err);
-        res.status(500).json({
-            error: 'Project Router Failed',
-            message: err.message,
-            stack: err.stack,
-            hint: 'Check if all backend dependencies are resolving correctly'
-        });
-    }
-});
-
-app.use('/api/partners', express.json(), async (req, res, next) => {
-    try {
-        console.log('BRIDGE_PARTNERS_START');
-        const { default: router } = await import('../backend/src/routes/partnerRoutes.js');
-        router(req, res, next);
-    } catch (err: any) {
-        console.error('BRIDGE_PARTNERS_FAILURE:', err);
-        res.status(500).json({
-            error: 'Partner Router Failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
-
-app.use('/api/auth', express.json(), async (req, res, next) => {
-    try {
-        console.log('BRIDGE_AUTH_START');
-        const { default: router } = await import('../backend/src/routes/authRoutes.js');
-        router(req, res, next);
-    } catch (err: any) {
-        console.error('BRIDGE_AUTH_FAILURE:', err);
-        res.status(500).json({
-            error: 'Auth Router Failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
-
-app.use('/api/invitations', express.json(), async (req, res, next) => {
-    try {
-        console.log('BRIDGE_INVITATIONS_START', {
-            host: req.headers.host,
-            fwd_proto: req.headers['x-forwarded-proto'],
-            fwd_host: req.headers['x-forwarded-host'],
-            frontend_url_env: process.env.FRONTEND_URL
-        });
-        const { default: router } = await import('../backend/src/routes/invitationRoutes.js');
-        router(req, res, next);
-    } catch (err: any) {
-        console.error('BRIDGE_INVITATIONS_FAILURE:', err);
-        res.status(500).json({
-            error: 'Invitation Router Failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
-
-app.use('/api/audit', express.json(), async (req, res, next) => {
-    try {
-        console.log('BRIDGE_AUDIT_START');
-        const { default: router } = await import('../backend/src/routes/auditRoutes.js');
-        router(req, res, next);
-    } catch (err: any) {
-        console.error('BRIDGE_AUDIT_FAILURE:', err);
-        res.status(500).json({
-            error: 'Audit Router Failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
-
-app.use('/api/system', express.json(), async (req, res, next) => {
-    try {
-        console.log('BRIDGE_SYSTEM_START');
-        const { default: router } = await import('../backend/src/routes/systemRoutes.js');
-        router(req, res, next);
-    } catch (err: any) {
-        console.error('BRIDGE_SYSTEM_FAILURE:', err);
-        res.status(500).json({
-            error: 'System Router Failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
-
-app.use('/api/agreements', express.json(), async (req, res, next) => {
-    try {
-        console.log('BRIDGE_AGREEMENTS_START');
-        const { default: router } = await import('../backend/src/routes/agreementRoutes.js');
-        router(req, res, next);
-    } catch (err: any) {
-        console.error('BRIDGE_AGREEMENTS_FAILURE:', err);
-        res.status(500).json({
-            error: 'Agreement Router Failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
-
-app.use('/api/payouts', express.json(), async (req, res, next) => {
-    try {
-        console.log('BRIDGE_PAYOUTS_START');
-        const { default: router } = await import('../backend/src/routes/payoutRoutes.js');
-        router(req, res, next);
-    } catch (err: any) {
-        console.error('BRIDGE_PAYOUTS_FAILURE:', err);
-        res.status(500).json({
-            error: 'Payout Router Failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
-
-app.use('/api/finance', express.json(), async (req, res, next) => {
-    try {
-        console.log('BRIDGE_FINANCE_START');
-        const { default: router } = await import('../backend/src/routes/financeRoutes.js');
-        router(req, res, next);
-    } catch (err: any) {
-        console.error('BRIDGE_FINANCE_FAILURE:', err);
-        res.status(500).json({
-            error: 'Finance Router Failed',
-            message: err.message,
-            stack: err.stack
-        });
-    }
-});
+// MOUNT ROUTERS
+app.use('/api/projects', projectRoutes);
+app.use('/api/partners', partnerRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/invitations', invitationRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/system', systemRoutes);
+app.use('/api/agreements', agreementRoutes);
+app.use('/api/payouts', payoutRoutes);
+app.use('/api/finance', financeRoutes);
 
 app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     try {
