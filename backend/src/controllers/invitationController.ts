@@ -98,7 +98,7 @@ export const verifyInvitation = async (req: Request, res: Response) => {
 
 export const acceptInvitation = async (req: Request, res: Response) => {
     const { token } = req.params;
-    const { password, ...onboardingData } = req.body;
+    const { password, confirmPassword, ...onboardingData } = req.body;
 
     if (!password) {
         return res.status(400).json({ error: 'Password is required' });
