@@ -1,25 +1,25 @@
-import { type Request, type Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { type AuthRequest } from '../middleware/authMiddleware.js';
+import { AppError } from '../middleware/errorMiddleware.js';
 
-export const createTask = async (req: AuthRequest, res: Response) => {
+export const createTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const { projectId, name, category, effortWeight, assignedPartnerId } = req.body;
+        const { projectId, name, category, effortWeight, assignedPartnerId, status } = req.body;
         const userId = req.user?.userId;
 
-        // Check permissions
         const user = await prisma.user.findUnique({
             where: { id: userId },
             include: { partnerProfile: true }
         });
 
-        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+        if (!user) return next(new AppError('Unauthorized', 401));
 
         const isAdmin = user.role === 'ADMIN';
         const canLogTasks = user.partnerProfile?.canLogTasks;
 
         if (!isAdmin && !canLogTasks) {
-            return res.status(403).json({ error: 'Forbidden: You do not have permission to create tasks' });
+            return next(new AppError('Forbidden: You do not have permission to create tasks', 403));
         }
 
         const task = await prisma.task.create({
@@ -27,40 +27,59 @@ export const createTask = async (req: AuthRequest, res: Response) => {
                 projectId,
                 name,
                 category,
-                effortWeight: effortWeight || 1.0,
+                effortWeight: effortWeight ? Number(effortWeight) : 1.0,
                 assignedPartnerId: assignedPartnerId || null,
+                status: status || 'BACKLOG',
+                completionPercent: status === 'DONE' ? 100 : 0
             },
         });
 
         res.status(201).json(task);
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        next(error);
     }
 };
 
-export const updateTask = async (req: Request, res: Response) => {
+export const updateTask = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
-    const { completionPercent, timeSpent } = req.body;
+    const { completionPercent, timeSpent, status, name, category, effortWeight, assignedPartnerId } = req.body;
 
     try {
+        // Sync status and completionPercent
+        let finalStatus = status;
+        let finalPercent = completionPercent;
+
+        if (status === 'DONE') {
+            finalPercent = 100;
+        } else if (completionPercent === 100 && !status) {
+            finalStatus = 'DONE';
+        } else if (completionPercent === 0 && !status) {
+            finalStatus = 'BACKLOG';
+        } else if (completionPercent > 0 && completionPercent < 100 && !status) {
+            finalStatus = 'IN_PROGRESS';
+        }
+
         const task = await prisma.task.update({
             where: { id },
             data: {
-                completionPercent,
-                timeSpent,
+                name,
+                category,
+                effortWeight: effortWeight !== undefined ? Number(effortWeight) : undefined,
+                assignedPartnerId,
+                completionPercent: finalPercent !== undefined ? Number(finalPercent) : undefined,
+                timeSpent: timeSpent !== undefined ? Number(timeSpent) : undefined,
+                status: finalStatus
             },
             include: { project: true },
         });
 
-        // Logic for auto-recalculation could be triggered here or via a dedicated service
-
         res.json(task);
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        next(error);
     }
 };
 
-export const getTasksByProject = async (req: Request, res: Response) => {
+export const getTasksByProject = async (req: Request, res: Response, next: NextFunction) => {
     const { projectId } = req.params;
     try {
         const tasks = await prisma.task.findMany({
@@ -68,23 +87,22 @@ export const getTasksByProject = async (req: Request, res: Response) => {
             include: {
                 assignedPartner: { include: { user: true } },
             },
+            orderBy: { createdAt: 'desc' }
         });
         res.json(tasks);
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        next(error);
     }
 };
 
-export const deleteTask = async (req: Request, res: Response) => {
+export const deleteTask = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
-
     try {
         await prisma.task.delete({
             where: { id },
         });
-
         res.json({ message: 'Task deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        next(error);
     }
 };

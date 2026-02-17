@@ -217,6 +217,7 @@ model Task {
   assignedPartner   Partner?  @relation(fields: [assignedPartnerId], references: [id])
   timeSpent       Float     @default(0)
   completionPercent Float   @default(0)
+  status          String    @default("BACKLOG") // BACKLOG / IN_PROGRESS / REVIEW / DONE
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }

@@ -1,7 +1,8 @@
-import { type Request, type Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { AppError } from '../middleware/errorMiddleware.js';
 
-export const createProject = async (req: Request, res: Response) => {
+export const createProject = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const {
             name, clientName, totalValue, startDate, endDate, description, weights,
@@ -20,7 +21,7 @@ export const createProject = async (req: Request, res: Response) => {
             data: {
                 name,
                 clientName,
-                totalValue: Number(totalValue),
+                totalValue: totalValue ? Number(totalValue) : 0,
                 startDate: new Date(startDate),
                 endDate: endDate ? new Date(endDate) : null,
                 description,
@@ -63,7 +64,7 @@ export const createProject = async (req: Request, res: Response) => {
                 timeTrackingEnabled: !!timeTrackingEnabled,
                 approvalRequired: !!approvalRequired,
 
-                visibility,
+                visibility: visibility || 'INTERNAL',
                 canEdit,
                 canAddTasks,
                 canFinalize,
@@ -103,20 +104,19 @@ export const createProject = async (req: Request, res: Response) => {
                     create: {
                         projectId: project.id,
                         partnerId: partnerId,
-                        weight: 1 // Default weight for leads
+                        percentage: 0 // Will be calculated live
                     }
                 })
             ));
         }
 
         res.status(201).json(project);
-    } catch (error) {
-        console.error('Project creation error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        next(error);
     }
 };
 
-export const getProjects = async (req: Request, res: Response) => {
+export const getProjects = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const projects = await prisma.project.findMany({
             include: {
@@ -127,12 +127,12 @@ export const getProjects = async (req: Request, res: Response) => {
             },
         });
         res.json(projects);
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        next(error);
     }
 };
 
-export const getProjectById = async (req: Request, res: Response) => {
+export const getProjectById = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     try {
         const project = await prisma.project.findUnique({
@@ -152,14 +152,14 @@ export const getProjectById = async (req: Request, res: Response) => {
                 milestones: true,
             },
         });
-        if (!project) return res.status(404).json({ error: 'Project not found' });
+        if (!project) return next(new AppError('Project not found', 404));
         res.json(project);
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        next(error);
     }
 };
 
-export const updateProject = async (req: Request, res: Response) => {
+export const updateProject = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     try {
         const {
@@ -178,7 +178,7 @@ export const updateProject = async (req: Request, res: Response) => {
             data: {
                 name,
                 clientName,
-                totalValue: totalValue ? Number(totalValue) : undefined,
+                totalValue: totalValue !== undefined ? Number(totalValue) : undefined,
                 startDate: startDate ? new Date(startDate) : undefined,
                 endDate: endDate ? new Date(endDate) : undefined,
                 description,
@@ -208,21 +208,23 @@ export const updateProject = async (req: Request, res: Response) => {
                 lockWeights: lockWeights !== undefined ? !!lockWeights : undefined,
                 enableTaskLogging: enableTaskLogging !== undefined ? !!enableTaskLogging : undefined,
                 autoLock: autoLock !== undefined ? !!autoLock : undefined,
+                projectLeadId,
+                techLeadId,
+                commsLeadId,
+                qaLeadId,
+                salesOwnerId
             }
         });
 
         res.json(project);
-    } catch (error) {
-        console.error('Project update error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        next(error);
     }
 };
 
-export const deleteProject = async (req: Request, res: Response) => {
+export const deleteProject = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     try {
-        // Delete related records first if needed, but Prisma can handle cascading if configured or we just delete.
-        // For SQLite, we might need to delete milestones manually or let it error if not cascading.
         await prisma.milestone.deleteMany({ where: { projectId: id } });
         await prisma.task.deleteMany({ where: { projectId: id } });
         await prisma.contribution.deleteMany({ where: { projectId: id } });
@@ -233,13 +235,12 @@ export const deleteProject = async (req: Request, res: Response) => {
             where: { id },
         });
         res.json({ message: 'Project deleted successfully' });
-    } catch (error) {
-        console.error('Project deletion error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        next(error);
     }
 };
 
-export const lockProject = async (req: Request, res: Response) => {
+export const lockProject = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     try {
         const project = await prisma.project.update({
@@ -247,7 +248,7 @@ export const lockProject = async (req: Request, res: Response) => {
             data: { isLocked: true },
         });
         res.json({ message: 'Project finalized and locked', project });
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        next(error);
     }
 };

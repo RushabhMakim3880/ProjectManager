@@ -60,13 +60,8 @@ app.use((req, res) => {
 });
 
 // Global Error Handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error('SERVER_ERROR:', err);
-    res.status(500).json({
-        error: err.message || 'Internal Server Error',
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
-});
+import { errorMiddleware } from './middleware/errorMiddleware.js';
+app.use(errorMiddleware);
 
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     app.listen(port, () => {

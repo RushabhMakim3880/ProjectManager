@@ -22,19 +22,19 @@ body {
 
 @layer components {
   .glass-card {
-    @apply bg-neutral-900/50 border border-neutral-800 backdrop-blur-md rounded-xl hover:bg-neutral-900/80 transition-all duration-300;
+    @apply bg-neutral-900/50 border border-neutral-800 backdrop-blur-md rounded-xl hover:bg-neutral-900/80 transition-all duration-300 p-4 sm:p-6;
   }
 
   .btn-primary {
-    @apply px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-medium shadow-lg shadow-indigo-900/20 active:scale-95;
+    @apply px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-medium shadow-lg shadow-indigo-900/20 active:scale-95 flex items-center justify-center gap-2;
   }
 
   .btn-outline {
-    @apply px-4 py-2 border border-neutral-700 hover:border-neutral-500 hover:bg-neutral-800/50 rounded-lg transition-all active:scale-95;
+    @apply px-4 py-2 border border-neutral-700 hover:border-neutral-500 hover:bg-neutral-800/50 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2;
   }
 
   .input-field {
-    @apply w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all;
+    @apply w-full px-4 py-2.5 bg-neutral-900 border border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-base sm:text-sm;
   }
 
   .font-signature {
@@ -43,7 +43,7 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -57,4 +57,31 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #404040;
+}
+
+@layer utilities {
+  .mobile-only {
+    @apply block sm:hidden;
+  }
+  .desktop-only {
+    @apply hidden sm:block;
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mobile Typography Fixes */
+@media (max-width: 640px) {
+  h1 { @apply text-2xl !important; }
+  h2 { @apply text-xl !important; }
+  h3 { @apply text-lg !important; }
+  p { @apply text-sm !important; }
+}
+
+/* Better touch targets for mobile */
+@media (pointer: coarse) {
+  button, a {
+    @apply min-h-[44px];
+  }
 }

@@ -1,7 +1,8 @@
-import { type Request, type Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import bcryptPkg from 'bcryptjs';
 import jwtPkg from 'jsonwebtoken';
 import { prisma } from '../lib/prisma.js';
+import { AppError } from '../middleware/errorMiddleware.js';
 
 const bcrypt = (bcryptPkg as any).default || bcryptPkg;
 const jwt = (jwtPkg as any).default || jwtPkg;
@@ -9,13 +10,13 @@ const jwt = (jwtPkg as any).default || jwtPkg;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret';
 
-export const signup = async (req: Request, res: Response) => {
+export const signup = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { email, password, name, role } = req.body;
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
-            return res.status(400).json({ error: 'User already exists' });
+            return next(new AppError('User already exists', 400));
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -39,16 +40,11 @@ export const signup = async (req: Request, res: Response) => {
 
         res.status(201).json({ message: 'User created successfully', userId: user.id });
     } catch (error: any) {
-        console.error('Signup error:', error);
-        res.status(500).json({
-            error: 'Internal server error',
-            message: error.message,
-            stack: error.stack
-        });
+        next(error);
     }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { email, password } = req.body;
 
@@ -58,7 +54,7 @@ export const login = async (req: Request, res: Response) => {
         });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return next(new AppError('Invalid credentials', 401));
         }
 
         const accessToken = jwt.sign(
@@ -85,24 +81,19 @@ export const login = async (req: Request, res: Response) => {
             },
         });
     } catch (error: any) {
-        console.error('Login error:', error);
-        res.status(500).json({
-            error: 'Internal server error',
-            message: error.message,
-            stack: error.stack
-        });
+        next(error);
     }
 };
 
-export const refresh = async (req: Request, res: Response) => {
+export const refresh = async (req: Request, res: Response, next: NextFunction) => {
     const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(401).json({ error: 'Refresh token required' });
+    if (!refreshToken) return next(new AppError('Refresh token required', 401));
 
     try {
         const payload: any = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
         const user = await prisma.user.findUnique({ where: { id: payload.userId } });
 
-        if (!user) return res.status(401).json({ error: 'User not found' });
+        if (!user) return next(new AppError('User not found', 401));
 
         const accessToken = jwt.sign(
             { userId: user.id, role: user.role },
@@ -112,16 +103,11 @@ export const refresh = async (req: Request, res: Response) => {
 
         res.json({ accessToken });
     } catch (error: any) {
-        console.error('Refresh error:', error);
-        res.status(403).json({
-            error: 'Invalid refresh token',
-            message: error.message,
-            stack: error.stack
-        });
+        next(new AppError('Invalid refresh token', 403));
     }
 };
 
-export const me = async (req: Request, res: Response) => {
+export const me = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user = await prisma.user.findUnique({
             where: { id: (req as any).user.userId },
@@ -136,13 +122,13 @@ export const me = async (req: Request, res: Response) => {
             }
         });
 
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) return next(new AppError('User not found', 404));
 
         res.json({
             ...user,
             partnerId: user.partnerProfile?.id
         });
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        next(error);
     }
 };
