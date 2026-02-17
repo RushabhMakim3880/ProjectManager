@@ -6,7 +6,13 @@ import cors from 'cors';
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: true, // Allow all origins (or specifics if needed)
+    credentials: true, // Allow cookies/auth headers
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+app.options('*', cors()); // Enable pre-flight for all routes
 
 app.get('/api/ping', (req: Request, res: Response) => {
     res.json({
