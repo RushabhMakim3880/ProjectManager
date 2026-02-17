@@ -70,19 +70,18 @@ export default function FinancialBreakdown({ project }: FinancialBreakdownProps)
                     { label: 'Actual Balance', value: actualBalance, icon: Scale, color: 'amber', desc: 'Funds In-Hand' },
                     { label: 'Net Profit Pool', value: netDistributable, icon: Wallet, color: 'emerald', desc: '85% Distributable' },
                 ].map((stat, i) => (
-                ].map((stat, i) => (
-                <div key={i} className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 relative overflow-hidden">
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className={`p-2 bg-${stat.color}-500/10 rounded-lg text-${stat.color}-400`}>
-                                <stat.icon className="w-4 h-4" />
+                    <div key={i} className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 relative overflow-hidden">
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className={`p-2 bg-${stat.color}-500/10 rounded-lg text-${stat.color}-400`}>
+                                    <stat.icon className="w-4 h-4" />
+                                </div>
+                                <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">{stat.label}</h3>
                             </div>
-                            <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-wider">{stat.label}</h3>
+                            <div className="text-2xl font-bold text-white">₹{stat.value.toLocaleString()}</div>
+                            <p className="text-[10px] text-neutral-600 font-medium uppercase tracking-wider mt-1">{stat.desc}</p>
                         </div>
-                        <div className="text-2xl font-bold text-white">₹{stat.value.toLocaleString()}</div>
-                        <p className="text-[10px] text-neutral-600 font-medium uppercase tracking-wider mt-1">{stat.desc}</p>
                     </div>
-                </div>
                 ))}
             </div>
 
