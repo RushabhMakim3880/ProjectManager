@@ -6,6 +6,8 @@ import { User, Award, Percent } from 'lucide-react';
 interface Contribution {
     partnerId: string;
     percentage: number;
+    tasksCompleted?: number;
+    earnings?: number;
     partner: {
         user: {
             name: string;
@@ -29,17 +31,22 @@ export default function ContributionList({ contributions }: { contributions: Con
                         </div>
                         <div>
                             <p className="font-medium text-neutral-100">{c.partner.user.name}</p>
-                            <p className="text-xs text-neutral-500 flex items-center gap-1">
-                                <Award className="w-3 h-3" /> Contribution Share
-                            </p>
+                            <div className="flex items-center gap-3 mt-1">
+                                <p className="text-[10px] text-neutral-500 flex items-center gap-1 uppercase font-bold tracking-tighter">
+                                    <Award className="w-3 h-3 text-indigo-500" /> {c.tasksCompleted || 0} Tasks
+                                </p>
+                                <p className="text-[10px] text-emerald-400 flex items-center gap-1 uppercase font-bold tracking-tighter bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                                    ₹{(c.earnings || 0).toLocaleString()}
+                                </p>
+                            </div>
                         </div>
                     </div>
 
                     <div className="text-right">
-                        <div className="flex items-center justify-end gap-1 text-indigo-400 font-bold text-lg">
-                            {c.percentage.toFixed(1)} <Percent className="w-4 h-4" />
+                        <div className="flex items-center justify-end gap-1 text-indigo-400 font-bold text-lg leading-none">
+                            {c.percentage.toFixed(1)}<span className="text-xs font-medium mt-1">%</span>
                         </div>
-                        <div className="w-24 h-1 bg-neutral-800 rounded-full mt-1 overflow-hidden">
+                        <div className="w-20 h-1 bg-neutral-800 rounded-full mt-2 overflow-hidden ml-auto">
                             <div
                                 className="h-full bg-indigo-500 transition-all duration-1000"
                                 style={{ width: `${Math.min(c.percentage, 100)}%` }}

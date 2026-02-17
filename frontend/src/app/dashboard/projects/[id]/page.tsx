@@ -358,7 +358,18 @@ export default function ProjectDetailsPage() {
                 </div>
 
                 <div className="lg:col-span-4 space-y-8">
-                    <ContributionList contributions={project.contributions || []} />
+                    <ContributionList contributions={(project.contributions || []).map((c: any) => {
+                        const partnerTasks = (project.tasks || []).filter((t: any) => t.assignedPartnerId === c.partnerId);
+                        const completedCount = partnerTasks.filter((t: any) => t.completionPercent === 100).length;
+                        const performancePool = project.financialRecords?.[0]?.performancePool || (project.totalValue * 0.85 * 0.8);
+                        const earnings = (c.percentage / 100) * performancePool;
+
+                        return {
+                            ...c,
+                            tasksCompleted: completedCount,
+                            earnings: earnings
+                        };
+                    })} />
 
                     <div className="glass-card p-6">
                         <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-4">Engagement Pulse</h3>
