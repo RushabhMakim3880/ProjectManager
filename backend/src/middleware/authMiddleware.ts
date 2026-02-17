@@ -1,8 +1,8 @@
 import { type Request, type Response, type NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET: string = process.env.JWT_SECRET || 'fallback_secret';
-const JWT_REFRESH_SECRET: string = process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret';
+const JWT_SECRET: string = process.env.JWT_SECRET || 'protrack_dev_secret_2024';
+const JWT_REFRESH_SECRET: string = process.env.JWT_REFRESH_SECRET || 'protrack_dev_refresh_2024';
 
 export interface AuthRequest extends Request {
     user?: {
