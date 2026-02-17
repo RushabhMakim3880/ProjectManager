@@ -69,110 +69,119 @@ export default function DashboardPage() {
     const netDistributable = stats.revenueMTD - businessReserve - religiousSurcharge;
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white mb-1">Portfolio Overview</h1>
+                    <h1 className="text-xl font-semibold text-neutral-100 mb-1">Portfolio Overview</h1>
                     <p className="text-neutral-500 text-sm">Welcome back, Administrator</p>
                 </div>
-                <Link href="/dashboard/projects" className="btn-primary flex items-center gap-2">
+                <Link href="/dashboard/projects" className="btn-primary">
                     <Plus className="w-4 h-4" /> New Project
                 </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {statCards.map((stat) => (
-                    <div key={stat.name} className="glass-card p-6 flex items-start gap-4">
-                        <div className={`p-3 rounded-xl ${stat.bg}`}>
-                            <stat.icon className={`w-6 h-6 ${stat.iconColor || 'text-white'}`} />
-                        </div>
+                    <div key={stat.name} className="card-standard p-5 flex items-start justify-between group hover:border-neutral-700 transition-colors">
                         <div>
-                            <p className="text-sm text-neutral-500 mb-1">{stat.name}</p>
-                            <p className="text-2xl font-bold text-white">{stat.value}</p>
+                            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide mb-1">{stat.name}</p>
+                            <p className="text-2xl font-semibold text-neutral-100 tracking-tight">{stat.value}</p>
+                        </div>
+                        <div className={`p-2 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-400 group-hover:text-neutral-200 transition-colors`}>
+                            <stat.icon className="w-4 h-4" />
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="glass-card overflow-hidden">
-                        <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
-                            <h2 className="font-semibold">Recent Projects</h2>
-                            <Link href="/dashboard/projects" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium tracking-tight">View All</Link>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Recent Projects Table */}
+                <div className="lg:col-span-2 space-y-4">
+                    <div className="card-standard overflow-hidden min-h-[400px]">
+                        <div className="p-4 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/50">
+                            <h2 className="text-sm font-semibold text-neutral-200">Recent Projects</h2>
+                            <Link href="/dashboard/projects" className="text-xs text-neutral-400 hover:text-neutral-200 font-medium transition-colors">View All</Link>
                         </div>
-                        <div className="divide-y divide-neutral-800">
-                            {loading ? (
-                                <div className="p-12 text-center text-neutral-500">Loading projects...</div>
-                            ) : recentProjects.length > 0 ? (
-                                recentProjects.map((project) => (
-                                    <div key={project.id} className="p-6 flex items-center justify-between hover:bg-neutral-800/30 transition-colors group">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center group-hover:bg-neutral-700 transition-colors">
-                                                <Briefcase className="w-5 h-5 text-neutral-400" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-neutral-100">{project.name}</p>
-                                                <p className="text-xs text-neutral-500">{project.clientName}</p>
-                                            </div>
+
+                        {loading ? (
+                            <div className="p-12 text-center text-neutral-500 text-sm">Loading projects...</div>
+                        ) : recentProjects.length > 0 ? (
+                            <div className="divide-y divide-neutral-800">
+                                <div className="grid grid-cols-12 px-4 py-2 border-b border-neutral-800 text-[10px] uppercase font-semibold text-neutral-500 tracking-wider">
+                                    <div className="col-span-6">Project Name</div>
+                                    <div className="col-span-3 text-right">Value</div>
+                                    <div className="col-span-3 text-right">Status</div>
+                                </div>
+                                {recentProjects.map((project) => (
+                                    <Link
+                                        key={project.id}
+                                        href={`/dashboard/projects/${project.id}`}
+                                        className="grid grid-cols-12 px-4 py-3 items-center hover:bg-neutral-800/50 transition-colors group text-sm"
+                                    >
+                                        <div className="col-span-6">
+                                            <p className="font-medium text-neutral-200 group-hover:text-white truncate">{project.name}</p>
+                                            <p className="text-xs text-neutral-500 truncate">{project.clientName}</p>
                                         </div>
-                                        <div className="flex items-center gap-8">
-                                            <div className="text-right hidden sm:block">
-                                                <p className="text-sm font-medium text-neutral-200">₹{(project.totalValue || 0).toLocaleString('en-IN')}</p>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <div className="w-24 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-                                                        <div className={`h-full bg-indigo-500 rounded-full`} style={{ width: `0%` }} />
-                                                    </div>
-                                                    <span className="text-[10px] text-neutral-500">0%</span>
-                                                </div>
-                                            </div>
-                                            <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-neutral-800 text-neutral-400 group-hover:border-neutral-700 border border-transparent`}>
+                                        <div className="col-span-3 text-right">
+                                            <p className="text-neutral-300 font-mono">₹{(project.totalValue || 0).toLocaleString('en-IN')}</p>
+                                        </div>
+                                        <div className="col-span-3 flex justify-end">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${project.status === 'ACTIVE' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                                    project.status === 'COMPLETED' ? 'bg-neutral-800 border-neutral-700 text-neutral-400' :
+                                                        'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                                }`}>
                                                 {project.status}
-                                            </div>
+                                            </span>
                                         </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="p-12 text-center text-neutral-500">No projects found. Start by creating a new one.</div>
-                            )}
-                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-12 text-center text-neutral-500 text-sm">No projects found.</div>
+                        )}
                     </div>
                 </div>
 
-                <div className="space-y-6">
-                    <div className="glass-card p-6">
-                        <h2 className="font-semibold mb-6">Profit Distribution</h2>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between text-sm">
+                {/* Profit Distribution */}
+                <div className="space-y-4">
+                    <div className="card-standard p-5">
+                        <h2 className="text-sm font-semibold text-neutral-200 mb-4">Financial Snapshot</h2>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-800/50">
+                                <span className="text-neutral-500">Gross Revenue (MTD)</span>
+                                <span className="text-neutral-200 font-mono">₹{stats.revenueMTD.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-800/50">
                                 <span className="text-neutral-500">Business Reserve (10%)</span>
-                                <span className="text-white font-medium">₹{businessReserve.toLocaleString('en-IN')}</span>
+                                <span className="text-neutral-300 font-mono">₹{businessReserve.toLocaleString('en-IN')}</span>
                             </div>
-                            <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center justify-between text-sm py-2 border-b border-neutral-800/50">
                                 <span className="text-neutral-500">Religious Surcharge (5%)</span>
-                                <span className="text-white font-medium">₹{religiousSurcharge.toLocaleString('en-IN')}</span>
+                                <span className="text-neutral-300 font-mono">₹{religiousSurcharge.toLocaleString('en-IN')}</span>
                             </div>
-                            <div className="h-px bg-neutral-800 my-2" />
-                            <div className="flex items-center justify-between">
-                                <span className="text-indigo-400 font-semibold tracking-tight">Net Distributable</span>
-                                <span className="text-white font-bold">₹{netDistributable.toLocaleString('en-IN')}</span>
+
+                            <div className="pt-2 flex items-center justify-between">
+                                <span className="text-sm font-medium text-emerald-500">Net Distributable</span>
+                                <span className="text-lg font-bold text-white font-mono">₹{netDistributable.toLocaleString('en-IN')}</span>
                             </div>
                         </div>
-                        <button className="btn-outline w-full mt-8 text-sm flex items-center justify-center gap-2">
-                            <CheckCircle2 className="w-4 h-4" /> Finalize Allocations
+                        <button className="btn-outline w-full mt-6">
+                            <CheckCircle2 className="w-4 h-4" /> Finalize Month
                         </button>
                     </div>
 
-                    <div className="glass-card p-6 flex items-center justify-between group cursor-pointer">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 rounded-xl bg-orange-500/10">
-                                <Clock className="w-6 h-6 text-orange-400" />
+                    <div className="card-standard p-4 flex items-center justify-between hover:border-neutral-700 transition-colors cursor-pointer group">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded bg-neutral-950 text-neutral-400 border border-neutral-800">
+                                <Clock className="w-4 h-4" />
                             </div>
                             <div>
-                                <p className="text-sm font-semibold text-white">Agreement Status</p>
-                                <p className="text-xs text-neutral-500">All current partners verified</p>
+                                <p className="text-sm font-medium text-neutral-200">System Status</p>
+                                <p className="text-xs text-neutral-500">All systems operational</p>
                             </div>
                         </div>
-                        <ExternalLink className="w-5 h-5 text-neutral-700 group-hover:text-neutral-300 transition-colors" />
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
                     </div>
                 </div>
             </div>

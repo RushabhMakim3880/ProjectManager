@@ -12,7 +12,8 @@ import {
     PieChart,
     LogOut,
     ShieldAlert,
-    ShieldCheck
+    ShieldCheck,
+    Command
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -20,17 +21,6 @@ import { twMerge } from 'tailwind-merge';
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
-
-const navItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { name: 'Projects', icon: Briefcase, href: '/dashboard/projects' },
-    { name: 'Partners', icon: Users, href: '/dashboard/partners' },
-    { name: 'Financials', icon: PieChart, href: '/dashboard/financials' },
-    { name: 'Documents', icon: FileText, href: '/dashboard/documents' },
-    { name: 'Agreements', icon: ShieldCheck, href: '/dashboard/agreements' },
-    { name: 'Audit Logs', icon: ShieldAlert, href: '/dashboard/logs', adminOnly: true },
-    { name: 'Settings', icon: Settings, href: '/dashboard/settings' },
-];
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -42,50 +32,106 @@ export default function Sidebar() {
         router.push('/login');
     };
 
-    return (
-        <aside className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col h-full">
-            <div className="p-6 flex items-center gap-3">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-lg">
-                    P
-                </div>
-                <span className="font-bold text-xl tracking-tight">ProjectBase</span>
-            </div>
-
-            <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
-                {navItems.map((item) => {
+    const NavGroup = ({ title, items }: { title?: string, items: any[] }) => (
+        <div className="mb-6">
+            {title && (
+                <h4 className="px-4 text-[10px] uppercase tracking-wider text-neutral-500 font-semibold mb-2">
+                    {title}
+                </h4>
+            )}
+            <div className="space-y-0.5">
+                {items.map((item) => {
                     const isActive = pathname === item.href;
                     return (
                         <Link
                             key={item.name}
                             href={item.href}
                             className={cn(
-                                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group",
+                                "flex items-center gap-2.5 px-4 py-1.5 text-sm transition-all border-l-2",
                                 isActive
-                                    ? "bg-indigo-600/10 text-indigo-400 font-medium"
-                                    : "text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800"
+                                    ? "border-indigo-500 text-neutral-100 bg-neutral-900"
+                                    : "border-transparent text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900/50"
                             )}
                         >
                             <item.icon className={cn(
-                                "w-5 h-5 transition-colors",
-                                isActive ? "text-indigo-400" : "text-neutral-500 group-hover:text-neutral-300"
+                                "w-4 h-4",
+                                isActive ? "text-indigo-400" : "text-neutral-500"
                             )} />
-                            {item.name}
-                            {isActive && (
-                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                            )}
+                            <span>{item.name}</span>
                         </Link>
                     );
                 })}
+            </div>
+        </div>
+    );
+
+    return (
+        <aside className="w-60 bg-neutral-950 border-r border-neutral-800 flex flex-col h-full flex-shrink-0">
+            {/* Logo Area */}
+            <div className="p-4 h-16 flex items-center border-b border-neutral-900">
+                <div className="flex items-center gap-2 text-neutral-100">
+                    <div className="w-6 h-6 bg-neutral-100 rounded flex items-center justify-center text-neutral-950">
+                        <Command className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-semibold text-sm tracking-tight">ProjectBase</span>
+                </div>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 py-6 overflow-y-auto custom-scrollbar">
+                <NavGroup
+                    items={[
+                        { name: 'Overview', icon: LayoutDashboard, href: '/dashboard' }
+                    ]}
+                />
+
+                <NavGroup
+                    title="Management"
+                    items={[
+                        { name: 'Projects', icon: Briefcase, href: '/dashboard/projects' },
+                        { name: 'Tasks', icon: Briefcase, href: '/dashboard/tasks' }, // Assumed exist/will exist
+                        { name: 'Network', icon: Users, href: '/dashboard/partners' },
+                    ]}
+                />
+
+                <NavGroup
+                    title="Intelligence"
+                    items={[
+                        { name: 'Financials', icon: PieChart, href: '/dashboard/financials' },
+                        { name: 'Audit Logs', icon: ShieldAlert, href: '/dashboard/logs' },
+                    ]}
+                />
+
+                <NavGroup
+                    title="Legal"
+                    items={[
+                        { name: 'Documents', icon: FileText, href: '/dashboard/documents' },
+                        { name: 'Agreements', icon: ShieldCheck, href: '/dashboard/agreements' },
+                    ]}
+                />
             </nav>
 
-            <div className="p-4 border-t border-neutral-800">
+            {/* User / Logout */}
+            <div className="p-4 border-t border-neutral-900">
                 <button
                     onClick={handleLogout}
-                    className="flex items-center gap-3 w-full px-3 py-2.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-all group"
+                    className="flex items-center gap-2 px-2 py-1.5 w-full text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
                 >
-                    <LogOut className="w-5 h-5 text-neutral-500 group-hover:text-red-400" />
-                    Logout
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
                 </button>
+                <Link
+                    href="/dashboard/settings"
+                    className="mt-3 flex items-center gap-3 px-2 py-2 rounded-md hover:bg-neutral-900 transition-colors"
+                >
+                    <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-xs font-medium text-neutral-400 border border-neutral-700">
+                        ME
+                    </div>
+                    <div className="text-left">
+                        <p className="text-xs font-medium text-neutral-200">My Profile</p>
+                        <p className="text-[10px] text-neutral-500">Settings</p>
+                    </div>
+                </Link>
             </div>
         </aside>
     );
