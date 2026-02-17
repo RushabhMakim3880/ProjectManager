@@ -40,10 +40,10 @@ export const signup = async (req: Request, res: Response) => {
         res.status(201).json({ message: 'User created successfully', userId: user.id });
     } catch (error: any) {
         console.error('Signup error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Internal server error',
             message: error.message,
-            stack: error.stack 
+            stack: error.stack
         });
     }
 };
@@ -86,8 +86,8 @@ export const login = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Login error:', error);
-        res.status(500).json({ 
-            error: 'Internal server error', 
+        res.status(500).json({
+            error: 'Internal server error',
             message: error.message,
             stack: error.stack
         });
@@ -113,10 +113,36 @@ export const refresh = async (req: Request, res: Response) => {
         res.json({ accessToken });
     } catch (error: any) {
         console.error('Refresh error:', error);
-        res.status(403).json({ 
+        res.status(403).json({
             error: 'Invalid refresh token',
             message: error.message,
             stack: error.stack
         });
+    }
+};
+
+export const me = async (req: Request, res: Response) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: (req as any).user.userId },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                partnerProfile: {
+                    select: { id: true }
+                }
+            }
+        });
+
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        res.json({
+            ...user,
+            partnerId: user.partnerProfile?.id
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
     }
 };

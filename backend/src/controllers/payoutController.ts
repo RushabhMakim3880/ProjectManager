@@ -57,3 +57,28 @@ export const finalizeProject = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+export const getPayouts = async (req: Request, res: Response) => {
+    try {
+        const payouts = await prisma.payout.findMany({
+            include: {
+                project: {
+                    select: { name: true }
+                },
+                partner: {
+                    include: {
+                        user: {
+                            select: { name: true }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+        res.json(payouts);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};

@@ -163,6 +163,36 @@ app.use('/api/system', express.json(), async (req, res, next) => {
     }
 });
 
+app.use('/api/agreements', express.json(), async (req, res, next) => {
+    try {
+        console.log('BRIDGE_AGREEMENTS_START');
+        const { default: router } = await import('../backend/src/routes/agreementRoutes.js');
+        router(req, res, next);
+    } catch (err: any) {
+        console.error('BRIDGE_AGREEMENTS_FAILURE:', err);
+        res.status(500).json({
+            error: 'Agreement Router Failed',
+            message: err.message,
+            stack: err.stack
+        });
+    }
+});
+
+app.use('/api/payouts', express.json(), async (req, res, next) => {
+    try {
+        console.log('BRIDGE_PAYOUTS_START');
+        const { default: router } = await import('../backend/src/routes/payoutRoutes.js');
+        router(req, res, next);
+    } catch (err: any) {
+        console.error('BRIDGE_PAYOUTS_FAILURE:', err);
+        res.status(500).json({
+            error: 'Payout Router Failed',
+            message: err.message,
+            stack: err.stack
+        });
+    }
+});
+
 app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     try {
         const bcryptPkg = await import('bcryptjs');
