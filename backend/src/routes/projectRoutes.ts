@@ -3,6 +3,8 @@ import { createProject, getProjects, getProjectById, updateProject, deleteProjec
 import { createTask, updateTask, getTasksByProject, deleteTask, getTaskComments, addTaskComment, getTaskStats } from '../controllers/taskController.js';
 import { recalculateProject } from '../controllers/financialController.js';
 import { getTransactions, createTransaction, deleteTransaction } from '../controllers/transactionController.js';
+import { finalizeProject } from '../controllers/payoutController.js';
+import { logAction } from '../middleware/auditMiddleware.js';
 import { authenticate, authorize } from '../middleware/authMiddleware.js';
 
 const router = Router();
@@ -16,6 +18,7 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), deleteProject);
 router.patch('/:id/lock', authenticate, authorize(['ADMIN']), lockProject);
 router.patch('/:id/unlock', authenticate, authorize(['ADMIN']), unlockProject);
 router.post('/:projectId/recalculate', authenticate, authorize(['ADMIN']), recalculateProject);
+router.post('/:projectId/finalize', authenticate, authorize(['ADMIN']), logAction('FINALIZE', 'PROJECT'), finalizeProject);
 
 // Task routes
 router.get('/:projectId/tasks', authenticate, getTasksByProject);

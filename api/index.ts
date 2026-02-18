@@ -193,6 +193,21 @@ app.use('/api/payouts', express.json(), async (req, res, next) => {
     }
 });
 
+app.use('/api/finance', express.json(), async (req, res, next) => {
+    try {
+        console.log('BRIDGE_FINANCE_START');
+        const { default: router } = await import('../backend/src/routes/financeRoutes.js');
+        router(req, res, next);
+    } catch (err: any) {
+        console.error('BRIDGE_FINANCE_FAILURE:', err);
+        res.status(500).json({
+            error: 'Finance Router Failed',
+            message: err.message,
+            stack: err.stack
+        });
+    }
+});
+
 app.get('/api/debug/seed-admin', async (req: Request, res: Response) => {
     try {
         const bcryptPkg = await import('bcryptjs');
