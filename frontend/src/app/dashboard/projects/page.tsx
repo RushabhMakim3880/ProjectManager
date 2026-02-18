@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus, Search, Filter, Calendar,
     IndianRupee, Briefcase, ChevronRight, BarChart3,
-    Clock, Trash2, Edit3, AlertCircle
+    Clock, Trash2, Edit3, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
 import CreateProjectModal from '@/components/CreateProjectModal';
@@ -71,23 +71,40 @@ export default function ProjectsPage() {
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {[
-                    { label: 'Active Projects', value: projects.filter(p => p.status === 'ACTIVE').length, icon: Briefcase, color: 'text-indigo-400' },
-                    { label: 'Total Value', value: `₹${(projects.reduce((acc, p) => acc + (p.totalValue || 0), 0) / 100000).toFixed(1)}L`, icon: IndianRupee, color: 'text-emerald-400' },
-                    { label: 'Completion', value: '68%', icon: BarChart3, color: 'text-amber-400' },
-                    { label: 'On Hold', value: projects.filter(p => p.status === 'ON_HOLD').length, icon: Clock, color: 'text-rose-400' },
-                ].map((stat, i) => (
-                    <div key={i} className="glass-card p-6 flex items-center gap-4 group hover:border-white/10 transition-all">
-                        <div className={`p-3 rounded-xl bg-white/5 ${stat.color}`}>
-                            <stat.icon className="w-6 h-6" />
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                {(() => {
+                    const totalValue = projects.reduce((acc: number, p: any) => acc + (p.totalValue || 0), 0);
+                    const totalTasks = projects.reduce((acc: number, p: any) => acc + (p._count?.tasks || 0), 0);
+                    const formatValue = (val: number) => {
+                        if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)}Cr`;
+                        if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
+                        if (val >= 1000) return `₹${(val / 1000).toFixed(0)}K`;
+                        return `₹${val.toLocaleString('en-IN')}`;
+                    };
+                    const completedProjects = projects.filter((p: any) => p.status === 'COMPLETED' || p.status === 'Completed').length;
+                    const activeProjects = projects.filter((p: any) => p.status === 'ACTIVE' || p.status === 'Active').length;
+                    const onHoldProjects = projects.filter((p: any) => p.status === 'ON_HOLD' || p.status === 'On Hold').length;
+
+                    const statCards = [
+                        { label: 'Total Projects', value: projects.length, icon: Briefcase, color: 'text-indigo-400' },
+                        { label: 'Active', value: activeProjects, icon: BarChart3, color: 'text-emerald-400' },
+                        { label: 'Completed', value: completedProjects, icon: CheckCircle2, color: 'text-sky-400' },
+                        { label: 'On Hold', value: onHoldProjects, icon: Clock, color: 'text-rose-400' },
+                        { label: 'Total Value', value: formatValue(totalValue), icon: IndianRupee, color: 'text-amber-400' },
+                    ];
+
+                    return statCards.map((stat, i) => (
+                        <div key={i} className="glass-card p-6 flex items-center gap-4 group hover:border-white/10 transition-all">
+                            <div className={`p-3 rounded-xl bg-white/5 ${stat.color}`}>
+                                <stat.icon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">{stat.label}</p>
+                                <p className="text-2xl font-bold text-white mt-0.5">{stat.value}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">{stat.label}</p>
-                            <p className="text-2xl font-bold text-white mt-0.5">{stat.value}</p>
-                        </div>
-                    </div>
-                ))}
+                    ));
+                })()}
             </div>
 
             {/* Search & Filter Bar */}
