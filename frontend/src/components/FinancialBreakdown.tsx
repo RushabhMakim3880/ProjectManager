@@ -238,28 +238,28 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                                     const performanceEarning = Number(((performanceShare / 100) * performancePoolTotal).toFixed(2));
                                     const baseEarning = Number((basePoolTotal / (totalPartnerCount || 1)).toFixed(2));
                                     const totalEarning = Number((performanceEarning + baseEarning).toFixed(2));
-                                    const isNonContributor = c._isNonContributor;
+                                    const didNoWork = performanceShare === 0;
 
                                     return (
-                                        <tr key={c.partnerId} className={`hover:bg-neutral-800/20 transition-all group ${isNonContributor ? 'opacity-60' : ''}`}>
+                                        <tr key={c.partnerId} className={`hover:bg-neutral-800/20 transition-all group ${didNoWork ? 'opacity-60' : ''}`}>
                                             <td className="p-5">
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 rounded-xl bg-neutral-800 border-2 ${isNonContributor ? 'border-neutral-800' : 'border-neutral-700'} flex items-center justify-center text-sm font-black ${isNonContributor ? 'text-neutral-500' : 'text-indigo-400'} group-hover:border-indigo-500/50 transition-colors`}>
+                                                    <div className={`w-10 h-10 rounded-xl bg-neutral-800 border-2 ${didNoWork ? 'border-neutral-800' : 'border-neutral-700'} flex items-center justify-center text-sm font-black ${didNoWork ? 'text-neutral-500' : 'text-indigo-400'} group-hover:border-indigo-500/50 transition-colors`}>
                                                         {c.partner?.user?.name?.charAt(0) || '?'}
                                                     </div>
                                                     <div>
                                                         <span className="text-sm font-black text-white block">{c.partner?.user?.name}</span>
                                                         <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-tighter flex items-center gap-1">
-                                                            <CheckCircle2 className={`w-3 h-3 ${isNonContributor ? 'text-neutral-600' : 'text-emerald-500'}`} /> {completedCount}/{totalCount} Tasks Matrix
+                                                            <CheckCircle2 className={`w-3 h-3 ${didNoWork ? 'text-neutral-600' : 'text-emerald-500'}`} /> {completedCount}/{totalCount} Tasks Matrix
                                                         </span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="p-5">
                                                 <div className="flex flex-col items-center gap-1.5">
-                                                    <span className={`text-xs font-black ${isNonContributor ? 'text-neutral-600' : 'text-indigo-400'}`}>{performanceShare.toFixed(1)}%</span>
+                                                    <span className={`text-xs font-black ${didNoWork ? 'text-neutral-600' : 'text-indigo-400'}`}>{performanceShare.toFixed(1)}%</span>
                                                     <div className="w-20 h-1 bg-neutral-800 rounded-full overflow-hidden">
-                                                        <div className={`h-full ${isNonContributor ? 'bg-neutral-700' : 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'}`} style={{ width: `${performanceShare}%` }} />
+                                                        <div className={`h-full ${didNoWork ? 'bg-neutral-700' : 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'}`} style={{ width: `${performanceShare}%` }} />
                                                     </div>
                                                 </div>
                                             </td>
@@ -267,11 +267,11 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                                                 <span className="text-xs font-bold text-neutral-400">₹{baseEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                             </td>
                                             <td className="p-5 text-right">
-                                                <span className={`text-xs font-bold ${isNonContributor ? 'text-neutral-600' : 'text-amber-400'}`}>₹{performanceEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                <span className={`text-xs font-bold ${didNoWork ? 'text-neutral-600' : 'text-amber-400'}`}>₹{performanceEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                             </td>
                                             <td className="p-5 text-right">
                                                 <div className="flex flex-col items-end">
-                                                    <span className={`text-base font-black tracking-tighter ${isNonContributor ? 'text-neutral-400' : 'text-white'}`}>₹{totalEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                    <span className={`text-base font-black tracking-tighter ${didNoWork ? 'text-neutral-400' : 'text-white'}`}>₹{totalEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                                     <span className="text-[9px] text-neutral-600 font-bold uppercase tracking-tighter bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 mt-1">Realized</span>
                                                 </div>
                                             </td>
