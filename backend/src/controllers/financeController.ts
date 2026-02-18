@@ -59,7 +59,7 @@ export const getCompanySummary = async (req: Request, res: Response) => {
 
         const equityDistribution = partners.map((p: any) => ({
             id: p.id,
-            name: p.user.name,
+            name: p.user?.name || 'Unknown Partner',
             equity: p.equityPercentage,
             totalContributed: p.totalCapitalContributed
         }));

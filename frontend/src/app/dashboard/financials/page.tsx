@@ -175,11 +175,11 @@ export default function FinancialsPage() {
                                         <td className="p-4 text-right text-neutral-300">₹{partner.totalContributed.toLocaleString()}</td>
                                         <td className="p-4 text-right">
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                                                {partner.equity.toFixed(2)}%
+                                                {(partner.equity || 0).toFixed(2)}%
                                             </span>
                                         </td>
                                         <td className="p-4 text-right font-bold text-emerald-400">
-                                            ₹{((data.financials.netProfit * partner.equity) / 100).toLocaleString()}
+                                            ₹{(((data.financials?.netProfit || 0) * (partner.equity || 0)) / 100).toLocaleString()}
                                         </td>
                                     </tr>
                                 ))}

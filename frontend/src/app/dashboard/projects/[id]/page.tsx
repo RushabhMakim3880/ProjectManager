@@ -25,13 +25,16 @@ import {
     ChevronRight,
     Plus,
     Layout,
-    Target
+    Target,
+    LockOpen,
+    Edit3
 } from 'lucide-react';
 import ContributionList from '@/components/ContributionList';
 import FinancialVisualizer from '@/components/FinancialVisualizer';
 import TaskManager from '@/components/TaskManager';
 import FinancialBreakdown from '@/components/FinancialBreakdown';
 import ProjectLedger from '@/components/ProjectLedger';
+import CreateProjectModal from '@/components/CreateProjectModal';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 
@@ -42,6 +45,8 @@ export default function ProjectDetailsPage() {
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('financials');
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingProject, setEditingProject] = useState<any>(null);
     const [totalPartnerCount, setTotalPartnerCount] = useState(1);
     const [allPartners, setAllPartners] = useState<any[]>([]);
 
@@ -73,6 +78,34 @@ export default function ProjectDetailsPage() {
             await fetchProject();
         } catch (err) {
             console.error("Recalculation failed", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleFinalize = async () => {
+        if (!confirm("Are you sure you want to finalize this engagement? This will lock the project and prevent further edits.")) return;
+        try {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            await api.patch(`/projects/${id}/lock`);
+            await fetchProject();
+        } catch (error) {
+            console.error('Failed to lock project:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUnlock = async () => {
+        if (!confirm("Are you sure you want to unlock this project?")) return;
+        try {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            await api.patch(`/projects/${id}/unlock`);
+            await fetchProject();
+        } catch (error) {
+            console.error('Failed to unlock project:', error);
         } finally {
             setLoading(false);
         }
@@ -113,6 +146,11 @@ export default function ProjectDetailsPage() {
                     <div>
                         <div className="flex items-center gap-3 mb-1">
                             <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">{project.projectIdCustom || 'PROJECT'}</span>
+                            {project.isLocked && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                                    <Lock className="w-3 h-3" /> LOCKED
+                                </span>
+                            )}
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${project.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
                                 }`}>
@@ -128,15 +166,41 @@ export default function ProjectDetailsPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {!project.isLocked && (
+                        <button
+                            onClick={() => {
+                                setEditingProject(project);
+                                setShowEditModal(true);
+                            }}
+                            className="btn-outline flex items-center gap-2 px-4"
+                            title="Edit Project Configuration"
+                        >
+                            <Edit3 className="w-4 h-4" />
+                        </button>
+                    )}
                     <button
                         onClick={handleRecalculate}
-                        className="btn-outline flex items-center gap-2 px-6"
+                        disabled={project.isLocked}
+                        className="btn-outline flex items-center gap-2 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <RefreshCw className="w-4 h-4" /> Recalculate
                     </button>
-                    <button className="btn-primary flex items-center gap-2 px-8 shadow-lg shadow-indigo-500/20">
-                        <Lock className="w-4 h-4" /> Finalize Engagement
-                    </button>
+
+                    {project.isLocked ? (
+                        <button
+                            onClick={handleUnlock}
+                            className="btn-outline border-amber-500/30 text-amber-400 hover:bg-amber-500/10 flex items-center gap-2 px-8 shadow-lg shadow-amber-500/10"
+                        >
+                            <LockOpen className="w-4 h-4" /> Unlock Project
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleFinalize}
+                            className="btn-primary flex items-center gap-2 px-8 shadow-lg shadow-indigo-500/20"
+                        >
+                            <Lock className="w-4 h-4" /> Finalize Engagement
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -466,6 +530,16 @@ export default function ProjectDetailsPage() {
                     </div>
                 )}
             </div>
+            {showEditModal && (
+                <CreateProjectModal
+                    onClose={() => {
+                        setShowEditModal(false);
+                        setEditingProject(null);
+                        fetchProject(); // Refresh data after edit
+                    }}
+                    initialData={editingProject}
+                />
+            )}
         </div>
     );
 }

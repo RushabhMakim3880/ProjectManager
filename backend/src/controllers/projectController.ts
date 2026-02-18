@@ -253,3 +253,16 @@ export const lockProject = async (req: Request, res: Response, next: NextFunctio
         next(error);
     }
 };
+
+export const unlockProject = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    try {
+        const project = await prisma.project.update({
+            where: { id },
+            data: { isLocked: false },
+        });
+        res.json({ message: 'Project unlocked', project });
+    } catch (error: any) {
+        next(error);
+    }
+};

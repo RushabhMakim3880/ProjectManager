@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createProject, getProjects, getProjectById, updateProject, deleteProject, lockProject } from '../controllers/projectController.js';
+import { createProject, getProjects, getProjectById, updateProject, deleteProject, lockProject, unlockProject } from '../controllers/projectController.js';
 import { createTask, updateTask, getTasksByProject, deleteTask, getTaskComments, addTaskComment, getTaskStats } from '../controllers/taskController.js';
 import { recalculateProject } from '../controllers/financialController.js';
 import { getTransactions, createTransaction, deleteTransaction } from '../controllers/transactionController.js';
@@ -14,6 +14,7 @@ router.post('/', authenticate, authorize(['ADMIN']), createProject);
 router.put('/:id', authenticate, authorize(['ADMIN']), updateProject);
 router.delete('/:id', authenticate, authorize(['ADMIN']), deleteProject);
 router.patch('/:id/lock', authenticate, authorize(['ADMIN']), lockProject);
+router.patch('/:id/unlock', authenticate, authorize(['ADMIN']), unlockProject);
 router.post('/:projectId/recalculate', authenticate, authorize(['ADMIN']), recalculateProject);
 
 // Task routes
