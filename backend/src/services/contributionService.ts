@@ -26,6 +26,9 @@ export const calculateProjectContributions = async (projectId: string) => {
     });
 
     tasks.forEach((task: any) => {
+        // Only count COMPLETED tasks toward contribution percentages
+        if (task.status !== 'DONE') return;
+
         if (!categoryData[task.category]) {
             categoryData[task.category] = { totalEffort: 0, partnerEffort: {} };
         }
@@ -33,9 +36,9 @@ export const calculateProjectContributions = async (projectId: string) => {
         const cat = categoryData[task.category]!;
         cat.totalEffort += task.effortWeight;
 
-        // Credit goes to COMPLETER if task is DONE, otherwise to ASSIGNEE
+        // Credit goes to the COMPLETER (who actually did the work)
         let creditPartnerId = task.assignedPartnerId;
-        if (task.status === 'DONE' && task.completedById) {
+        if (task.completedById) {
             // Map the User ID (completer) to a Partner ID
             creditPartnerId = userToPartnerMap[task.completedById] || task.assignedPartnerId;
         }
