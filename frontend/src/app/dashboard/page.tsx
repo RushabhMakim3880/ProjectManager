@@ -86,7 +86,7 @@ export default function DashboardPage() {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                 {statCards.map((stat) => (
                     <div key={stat.name} className="glass-card p-6 flex items-start gap-4">
                         <div className={`p-3 rounded-xl ${stat.bg}`}>
