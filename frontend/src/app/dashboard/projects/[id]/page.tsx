@@ -43,6 +43,7 @@ export default function ProjectDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('financials');
     const [totalPartnerCount, setTotalPartnerCount] = useState(1);
+    const [allPartners, setAllPartners] = useState<any[]>([]);
 
     const fetchProject = async () => {
         try {
@@ -59,7 +60,9 @@ export default function ProjectDetailsPage() {
         fetchProject();
         // Fetch total partner count for base pay calculation
         api.get('/partners').then(res => {
-            setTotalPartnerCount(Array.isArray(res.data) ? res.data.length : 1);
+            const partners = Array.isArray(res.data) ? res.data : [];
+            setTotalPartnerCount(partners.length || 1);
+            setAllPartners(partners);
         }).catch(() => { });
     }, [id]);
 
@@ -376,7 +379,7 @@ export default function ProjectDetailsPage() {
                     )}
 
                     {activeTab === 'earnings' && (
-                        <FinancialBreakdown project={project} totalPartnerCount={totalPartnerCount} />
+                        <FinancialBreakdown project={project} totalPartnerCount={totalPartnerCount} allPartners={allPartners} />
                     )}
 
                     {activeTab === 'ledger' && (

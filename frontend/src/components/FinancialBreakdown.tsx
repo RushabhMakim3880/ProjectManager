@@ -6,9 +6,10 @@ import { motion } from "framer-motion";
 interface FinancialBreakdownProps {
     project: any;
     totalPartnerCount?: number;
+    allPartners?: any[];
 }
 
-export default function FinancialBreakdown({ project, totalPartnerCount = 1 }: FinancialBreakdownProps) {
+export default function FinancialBreakdown({ project, totalPartnerCount = 1, allPartners = [] }: FinancialBreakdownProps) {
     const latestFinancial = project.financialRecords?.[0];
 
     // Fallback to real-time calculation if manual sync hasn't happened
@@ -215,63 +216,73 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1 }: F
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-800/50">
-                            {partners.map((c: any) => {
-                                const partnerTasks = (project.tasks || []).filter((t: any) => t.assignedPartnerId === c.partnerId);
-                                const completedCount = partnerTasks.filter((t: any) => t.completionPercent === 100).length;
-                                const totalCount = partnerTasks.length;
+                            {(() => {
+                                // Build merged list: project contributors + non-contributor partners
+                                const contributorIds = new Set(partners.map((c: any) => c.partnerId));
+                                const nonContributors = allPartners
+                                    .filter((p: any) => !contributorIds.has(p.id))
+                                    .map((p: any) => ({
+                                        partnerId: p.id,
+                                        percentage: 0,
+                                        partner: { user: p.user },
+                                        _isNonContributor: true,
+                                    }));
+                                const allEntries = [...partners, ...nonContributors];
 
-                                const performanceShare = c.percentage;
-                                const performanceEarning = Number(((performanceShare / 100) * performancePoolTotal).toFixed(2));
-                                const baseEarning = Number((basePoolTotal / (totalPartnerCount || 1)).toFixed(2));
-                                const totalEarning = Number((performanceEarning + baseEarning).toFixed(2));
+                                return allEntries.map((c: any) => {
+                                    const partnerTasks = (project.tasks || []).filter((t: any) => t.assignedPartnerId === c.partnerId);
+                                    const completedCount = partnerTasks.filter((t: any) => t.completionPercent === 100).length;
+                                    const totalCount = partnerTasks.length;
 
-                                return (
-                                    <tr key={c.partnerId} className="hover:bg-neutral-800/20 transition-all group">
-                                        <td className="p-5">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center text-sm font-black text-indigo-400 group-hover:border-indigo-500/50 transition-colors">
-                                                    {c.partner?.user?.name?.charAt(0) || '?'}
+                                    const performanceShare = c.percentage;
+                                    const performanceEarning = Number(((performanceShare / 100) * performancePoolTotal).toFixed(2));
+                                    const baseEarning = Number((basePoolTotal / (totalPartnerCount || 1)).toFixed(2));
+                                    const totalEarning = Number((performanceEarning + baseEarning).toFixed(2));
+                                    const isNonContributor = c._isNonContributor;
+
+                                    return (
+                                        <tr key={c.partnerId} className={`hover:bg-neutral-800/20 transition-all group ${isNonContributor ? 'opacity-60' : ''}`}>
+                                            <td className="p-5">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-10 h-10 rounded-xl bg-neutral-800 border-2 ${isNonContributor ? 'border-neutral-800' : 'border-neutral-700'} flex items-center justify-center text-sm font-black ${isNonContributor ? 'text-neutral-500' : 'text-indigo-400'} group-hover:border-indigo-500/50 transition-colors`}>
+                                                        {c.partner?.user?.name?.charAt(0) || '?'}
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-sm font-black text-white block">{c.partner?.user?.name}</span>
+                                                        <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-tighter flex items-center gap-1">
+                                                            {isNonContributor ? (
+                                                                <><Clock className="w-3 h-3 text-neutral-600" /> Not assigned to this project</>
+                                                            ) : (
+                                                                <><CheckCircle2 className="w-3 h-3 text-emerald-500" /> {completedCount}/{totalCount} Tasks Matrix</>
+                                                            )}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <span className="text-sm font-black text-white block">{c.partner?.user?.name}</span>
-                                                    <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-tighter flex items-center gap-1">
-                                                        <CheckCircle2 className="w-3 h-3 text-emerald-500" /> {completedCount}/{totalCount} Tasks Matrix
-                                                    </span>
+                                            </td>
+                                            <td className="p-5">
+                                                <div className="flex flex-col items-center gap-1.5">
+                                                    <span className={`text-xs font-black ${isNonContributor ? 'text-neutral-600' : 'text-indigo-400'}`}>{performanceShare.toFixed(1)}%</span>
+                                                    <div className="w-20 h-1 bg-neutral-800 rounded-full overflow-hidden">
+                                                        <div className={`h-full ${isNonContributor ? 'bg-neutral-700' : 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'}`} style={{ width: `${performanceShare}%` }} />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-5">
-                                            <div className="flex flex-col items-center gap-1.5">
-                                                <span className="text-xs font-black text-indigo-400">{performanceShare.toFixed(1)}%</span>
-                                                <div className="w-20 h-1 bg-neutral-800 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" style={{ width: `${performanceShare}%` }} />
+                                            </td>
+                                            <td className="p-5 text-right">
+                                                <span className="text-xs font-bold text-neutral-400">₹{baseEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                            </td>
+                                            <td className="p-5 text-right">
+                                                <span className={`text-xs font-bold ${isNonContributor ? 'text-neutral-600' : 'text-amber-400'}`}>₹{performanceEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                            </td>
+                                            <td className="p-5 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`text-base font-black tracking-tighter ${isNonContributor ? 'text-neutral-400' : 'text-white'}`}>₹{totalEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                    <span className="text-[9px] text-neutral-600 font-bold uppercase tracking-tighter bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 mt-1">Realized</span>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-5 text-right">
-                                            <span className="text-xs font-bold text-neutral-400">₹{baseEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                                        </td>
-                                        <td className="p-5 text-right">
-                                            <span className="text-xs font-bold text-amber-400">₹{performanceEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                                        </td>
-                                        <td className="p-5 text-right">
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-base font-black text-white tracking-tighter">₹{totalEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                                                <span className="text-[9px] text-neutral-600 font-bold uppercase tracking-tighter bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 mt-1">Realized</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            {totalPartnerCount > partners.length && (
-                                <tr className="bg-neutral-950/30">
-                                    <td colSpan={5} className="p-4 text-center">
-                                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
-                                            Base share (₹{Number((basePoolTotal / (totalPartnerCount || 1)).toFixed(0)).toLocaleString()} each) also distributed to {totalPartnerCount - partners.length} other partner{totalPartnerCount - partners.length > 1 ? 's' : ''} not on this project
-                                        </span>
-                                    </td>
-                                </tr>
-                            )}
+                                            </td>
+                                        </tr>
+                                    );
+                                });
+                            })()}
                         </tbody>
                     </table>
                 </div>
