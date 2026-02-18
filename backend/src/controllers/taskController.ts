@@ -207,3 +207,18 @@ export const getTaskComments = async (req: Request, res: Response, next: NextFun
         next(error);
     }
 };
+
+export const getTaskStats = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const [completed, pending, total] = await Promise.all([
+            prisma.task.count({ where: { status: 'DONE' } }),
+            prisma.task.count({ where: { status: { in: ['IN_PROGRESS', 'BACKLOG'] } } }),
+            prisma.task.count(),
+        ]);
+
+        res.json({ completed, pending, total });
+    } catch (error: any) {
+        next(error);
+    }
+};
+

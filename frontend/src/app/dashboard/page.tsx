@@ -8,7 +8,8 @@ import {
     CheckCircle2,
     Clock,
     ExternalLink,
-    Plus
+    Plus,
+    Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -18,7 +19,8 @@ export default function DashboardPage() {
         activeProjects: 0,
         totalPartners: 0,
         revenueMTD: 0,
-        completedTasks: 0
+        completedTasks: 0,
+        pendingTasks: 0
     });
     const [recentProjects, setRecentProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -27,13 +29,15 @@ export default function DashboardPage() {
         const fetchDashboardData = async () => {
             setLoading(true);
             try {
-                const [projectsRes, partnersRes] = await Promise.all([
+                const [projectsRes, partnersRes, taskStatsRes] = await Promise.all([
                     api.get('/projects'),
-                    api.get('/partners')
+                    api.get('/partners'),
+                    api.get('/projects/tasks/stats')
                 ]);
 
                 const projects = projectsRes.data;
                 const partners = partnersRes.data;
+                const taskStats = taskStatsRes.data;
 
                 // Simple metric calculation
                 const active = projects.filter((p: any) => p.status === 'ACTIVE').length;
@@ -43,7 +47,8 @@ export default function DashboardPage() {
                     activeProjects: active,
                     totalPartners: partners.length,
                     revenueMTD: revenue,
-                    completedTasks: 0 // Placeholder until task counts are joined
+                    completedTasks: taskStats.completed || 0,
+                    pendingTasks: taskStats.pending || 0
                 });
 
                 setRecentProjects(projects.slice(0, 3));
@@ -62,6 +67,7 @@ export default function DashboardPage() {
         { name: 'Total Partners', value: stats.totalPartners.toString(), icon: Users, iconColor: 'text-emerald-400', bg: 'bg-emerald-500/10' },
         { name: 'Revenue (MTD)', value: `₹${stats.revenueMTD.toLocaleString('en-IN')}`, icon: TrendingUp, iconColor: 'text-amber-400', bg: 'bg-amber-500/10' },
         { name: 'Completed Tasks', value: stats.completedTasks.toString(), icon: CheckCircle2, iconColor: 'text-sky-400', bg: 'bg-sky-500/10' },
+        { name: 'Pending Tasks', value: stats.pendingTasks.toString(), icon: Loader2, iconColor: 'text-orange-400', bg: 'bg-orange-500/10' },
     ];
 
     const businessReserve = stats.revenueMTD * 0.1;
