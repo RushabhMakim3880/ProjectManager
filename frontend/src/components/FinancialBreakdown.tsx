@@ -1,6 +1,7 @@
 "use client";
 
-import { DollarSign, Percent, PieChart, Shield, Heart, Award, CheckCircle2, Clock, TrendingDown, Scale, Wallet } from "lucide-react";
+import { useState } from "react";
+import { DollarSign, Percent, PieChart, Shield, Heart, Award, CheckCircle2, Clock, TrendingDown, Scale, Wallet, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface FinancialBreakdownProps {
@@ -47,6 +48,26 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
     const performancePoolTotal = latestFinancial?.performancePool ?? Number((netDistributable * PERFORMANCE_POOL_PERCENT).toFixed(2));
 
     const partners = project.contributions || [];
+
+    const [isRecalculating, setIsRecalculating] = useState(false);
+
+    const handleRecalculate = async () => {
+        setIsRecalculating(true);
+        try {
+            const token = localStorage.getItem('token');
+            await fetch(`http://localhost:5000/api/projects/${project.id}/recalculate`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            window.location.reload();
+        } catch (error) {
+            console.error('Failed to recalculate:', error);
+        } finally {
+            setIsRecalculating(false);
+        }
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -202,7 +223,17 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                         <Award className="w-4 h-4 text-indigo-500" />
                         Partner Performance Ledger
                     </h3>
-                    <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Calculated to 2 Decimals</div>
+                    <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest flex items-center gap-4">
+                        <span>Calculated to 2 Decimals</span>
+                        <button
+                            onClick={handleRecalculate}
+                            disabled={isRecalculating}
+                            className="p-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Recalculate Performance Scores"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isRecalculating ? 'animate-spin' : ''}`} />
+                        </button>
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">

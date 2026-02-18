@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { type AuthRequest } from '../middleware/authMiddleware.js';
 import { AppError } from '../middleware/errorMiddleware.js';
 import { notifyTaskAssigned, notifyTaskReassigned, notifyTaskCompleted, notifyTaskComment } from '../services/emailService.js';
+import { calculateProjectContributions } from '../services/contributionService.js';
 
 export const createTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -44,6 +45,11 @@ export const createTask = async (req: AuthRequest, res: Response, next: NextFunc
         // Fire-and-forget email notification
         if (task.assignedPartnerId && task.project) {
             notifyTaskAssigned(task, task.project).catch(() => { });
+        }
+
+        // Auto-recalculate contributions (fire-and-forget)
+        if (task.effortWeight > 0) {
+            calculateProjectContributions(projectId).catch(err => console.error('Auto-calc error:', err));
         }
     } catch (error: any) {
         next(error);
@@ -123,6 +129,11 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
                 notifyTaskCompleted(task, task.project, completerName).catch(() => { });
             }
         }
+
+        // Auto-recalculate contributions if effort or status changed
+        if (task.projectId) {
+            calculateProjectContributions(task.projectId).catch(err => console.error('Auto-calc error:', err));
+        }
     } catch (error: any) {
         next(error);
     }
@@ -148,9 +159,19 @@ export const getTasksByProject = async (req: Request, res: Response, next: NextF
 export const deleteTask = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     try {
+        const task = await prisma.task.findUnique({
+            where: { id },
+            select: { projectId: true }
+        });
+
         await prisma.task.delete({
             where: { id },
         });
+
+        if (task?.projectId) {
+            calculateProjectContributions(task.projectId).catch(err => console.error('Auto-calc error:', err));
+        }
+
         res.json({ message: 'Task deleted successfully' });
     } catch (error: any) {
         next(error);
