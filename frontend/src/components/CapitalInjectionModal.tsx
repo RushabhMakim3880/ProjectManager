@@ -19,10 +19,14 @@ export default function CapitalInjectionModal({ isOpen, onClose, onSuccess, curr
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (isOpen && currentUserId) {
-            setSelectedPartnerId(currentUserId);
+        if (isOpen) {
+            if (currentUserId) {
+                setSelectedPartnerId(currentUserId);
+            } else if (partners.length > 0) {
+                setSelectedPartnerId(partners[0].id);
+            }
         }
-    }, [isOpen, currentUserId]);
+    }, [isOpen, currentUserId, partners]);
 
     if (!isOpen) return null;
 
@@ -104,8 +108,8 @@ export default function CapitalInjectionModal({ isOpen, onClose, onSuccess, curr
                     <div className="pt-2">
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="w-full btn-primary flex items-center justify-center gap-2"
+                            disabled={loading || !selectedPartnerId || !amount}
+                            className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Processing...' : (
                                 <>
