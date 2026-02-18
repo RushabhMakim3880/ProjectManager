@@ -42,6 +42,7 @@ export default function ProjectDetailsPage() {
     const [project, setProject] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('financials');
+    const [totalPartnerCount, setTotalPartnerCount] = useState(1);
 
     const fetchProject = async () => {
         try {
@@ -56,6 +57,10 @@ export default function ProjectDetailsPage() {
 
     useEffect(() => {
         fetchProject();
+        // Fetch total partner count for base pay calculation
+        api.get('/partners').then(res => {
+            setTotalPartnerCount(Array.isArray(res.data) ? res.data.length : 1);
+        }).catch(() => { });
     }, [id]);
 
     const handleRecalculate = async () => {
@@ -371,7 +376,7 @@ export default function ProjectDetailsPage() {
                     )}
 
                     {activeTab === 'earnings' && (
-                        <FinancialBreakdown project={project} />
+                        <FinancialBreakdown project={project} totalPartnerCount={totalPartnerCount} />
                     )}
 
                     {activeTab === 'ledger' && (

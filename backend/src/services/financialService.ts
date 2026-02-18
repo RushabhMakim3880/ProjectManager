@@ -20,7 +20,7 @@ export class FinancialService {
      * Deterministic profit-sharing calculation module.
      * Computes exact payouts based on revenue and contribution percentages.
      */
-    static calculateProfitSharing(GPR: number, partners: { id?: string; name: string; contributionPercent: number }[]) {
+    static calculateProfitSharing(GPR: number, partners: { id?: string; name: string; contributionPercent: number }[], totalPartnerCount: number) {
         // VALIDATION
         if (GPR < 0) throw new Error('GPR must be >= 0');
         if (partners.length === 0) throw new Error('At least one partner must exist');
@@ -40,8 +40,8 @@ export class FinancialService {
         const basePool = Number((NDP * this.BASE_POOL_PERCENT).toFixed(2));
         const performancePool = Number((NDP * this.PERFORMANCE_POOL_PERCENT).toFixed(2));
 
-        // STEP 3 — BASE SHARE PER PARTNER
-        const baseShareEach = Number((basePool / partners.length).toFixed(2));
+        // STEP 3 — BASE SHARE PER PARTNER (divided among ALL company partners)
+        const baseShareEach = Number((basePool / totalPartnerCount).toFixed(2));
 
         // STEP 4 & 5 — PERFORMANCE SHARE & FINAL PAYOUT
         const partnerResults = partners.map(partner => {
@@ -95,6 +95,9 @@ export class FinancialService {
             contributionPercent: c.percentage
         }));
 
+        // Get total partner count for base pay distribution (ALL partners, not just contributors)
+        const totalPartnerCount = await prisma.partner.count();
+
         // If no contributions exist, we can't calculate profit sharing accurately
         if (partnersForCalc.length === 0) {
             return await prisma.financial.upsert({
@@ -104,7 +107,7 @@ export class FinancialService {
             });
         }
 
-        const metrics = this.calculateProfitSharing(GPR, partnersForCalc);
+        const metrics = this.calculateProfitSharing(GPR, partnersForCalc, totalPartnerCount);
 
         // Update or create financial record
         return await prisma.financial.upsert({

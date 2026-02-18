@@ -25,11 +25,11 @@ export const finalizeProject = async (req: Request, res: Response) => {
             data: { isLocked: true },
         });
 
-        // 3. Generate Payouts
+        // 3. Generate Payouts — base share uses ALL partners, not just contributors
+        const totalPartnerCount = await prisma.partner.count();
         const payoutData = Object.entries(contributions).map(([partnerId, percentage]) => {
             const performanceShare = financials.performancePool * (percentage / 100);
-            // Assuming base pool is split equally among partners who contributed
-            const baseShare = financials.basePool / Object.keys(contributions).length;
+            const baseShare = financials.basePool / totalPartnerCount;
 
             return {
                 projectId,

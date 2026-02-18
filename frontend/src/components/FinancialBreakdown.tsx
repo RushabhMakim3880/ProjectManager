@@ -5,9 +5,10 @@ import { motion } from "framer-motion";
 
 interface FinancialBreakdownProps {
     project: any;
+    totalPartnerCount?: number;
 }
 
-export default function FinancialBreakdown({ project }: FinancialBreakdownProps) {
+export default function FinancialBreakdown({ project, totalPartnerCount = 1 }: FinancialBreakdownProps) {
     const latestFinancial = project.financialRecords?.[0];
 
     // Fallback to real-time calculation if manual sync hasn't happened
@@ -221,7 +222,7 @@ export default function FinancialBreakdown({ project }: FinancialBreakdownProps)
 
                                 const performanceShare = c.percentage;
                                 const performanceEarning = Number(((performanceShare / 100) * performancePoolTotal).toFixed(2));
-                                const baseEarning = Number((basePoolTotal / (partners.length || 1)).toFixed(2));
+                                const baseEarning = Number((basePoolTotal / (totalPartnerCount || 1)).toFixed(2));
                                 const totalEarning = Number((performanceEarning + baseEarning).toFixed(2));
 
                                 return (
@@ -262,6 +263,15 @@ export default function FinancialBreakdown({ project }: FinancialBreakdownProps)
                                     </tr>
                                 );
                             })}
+                            {totalPartnerCount > partners.length && (
+                                <tr className="bg-neutral-950/30">
+                                    <td colSpan={5} className="p-4 text-center">
+                                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
+                                            Base share (₹{Number((basePoolTotal / (totalPartnerCount || 1)).toFixed(0)).toLocaleString()} each) also distributed to {totalPartnerCount - partners.length} other partner{totalPartnerCount - partners.length > 1 ? 's' : ''} not on this project
+                                        </span>
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
