@@ -397,6 +397,7 @@ export default function ProjectDetailsPage() {
                         return {
                             ...c,
                             tasksCompleted: completedCount,
+                            totalTasks: partnerTasks.length,
                             earnings: earnings
                         };
                     })} />
