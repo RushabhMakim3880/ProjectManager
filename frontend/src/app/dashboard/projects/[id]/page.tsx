@@ -165,7 +165,7 @@ export default function ProjectDetailsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-8">
+                <div className={`${activeTab === 'earnings' || activeTab === 'ledger' ? 'lg:col-span-12' : 'lg:col-span-8'}`}>
                     {activeTab === 'financials' && (
                         <div className="space-y-8 animate-in fade-in duration-300">
                             <FinancialVisualizer financials={project.financialRecords?.[0] || {
@@ -387,82 +387,84 @@ export default function ProjectDetailsPage() {
                     )}
                 </div>
 
-                <div className="lg:col-span-4 space-y-8">
-                    <ContributionList contributions={(project.contributions || []).map((c: any) => {
-                        const partnerTasks = (project.tasks || []).filter((t: any) => t.assignedPartnerId === c.partnerId);
-                        const completedCount = partnerTasks.filter((t: any) => t.completionPercent === 100).length;
-                        const performancePool = project.financialRecords?.[0]?.performancePool || (project.totalValue * 0.85 * 0.8);
-                        const earnings = (c.percentage / 100) * performancePool;
+                {(activeTab !== 'earnings' && activeTab !== 'ledger') && (
+                    <div className="lg:col-span-4 space-y-8">
+                        <ContributionList contributions={(project.contributions || []).map((c: any) => {
+                            const partnerTasks = (project.tasks || []).filter((t: any) => t.assignedPartnerId === c.partnerId);
+                            const completedCount = partnerTasks.filter((t: any) => t.completionPercent === 100).length;
+                            const performancePool = project.financialRecords?.[0]?.performancePool || (project.totalValue * 0.85 * 0.8);
+                            const earnings = (c.percentage / 100) * performancePool;
 
-                        return {
-                            ...c,
-                            tasksCompleted: completedCount,
-                            totalTasks: partnerTasks.length,
-                            earnings: earnings
-                        };
-                    })} />
+                            return {
+                                ...c,
+                                tasksCompleted: completedCount,
+                                totalTasks: partnerTasks.length,
+                                earnings: earnings
+                            };
+                        })} />
 
-                    <div className="glass-card p-6">
-                        <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-4">Engagement Pulse</h3>
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3 text-sm">
-                                <Calendar className="w-4 h-4 text-neutral-500" />
-                                <span className="text-neutral-400">Launched:</span>
-                                <span className="text-neutral-100 font-medium">{new Date(project.startDate).toLocaleDateString()}</span>
+                        <div className="glass-card p-6">
+                            <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-4">Engagement Pulse</h3>
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3 text-sm">
+                                    <Calendar className="w-4 h-4 text-neutral-500" />
+                                    <span className="text-neutral-400">Launched:</span>
+                                    <span className="text-neutral-100 font-medium">{new Date(project.startDate).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm">
+                                    <Info className="w-4 h-4 text-neutral-500" />
+                                    <span className="text-neutral-400">Priority:</span>
+                                    <span className={`font-bold ${project.priority === 'CRITICAL' ? 'text-rose-500' :
+                                        project.priority === 'HIGH' ? 'text-amber-500' : 'text-indigo-400'
+                                        }`}>{project.priority}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-sm">
+                                    <Activity className="w-4 h-4 text-neutral-500" />
+                                    <span className="text-neutral-400">Project Type:</span>
+                                    <span className="text-neutral-100 font-medium">{project.projectType}</span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-3 text-sm">
-                                <Info className="w-4 h-4 text-neutral-500" />
-                                <span className="text-neutral-400">Priority:</span>
-                                <span className={`font-bold ${project.priority === 'CRITICAL' ? 'text-rose-500' :
-                                    project.priority === 'HIGH' ? 'text-amber-500' : 'text-indigo-400'
-                                    }`}>{project.priority}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm">
-                                <Activity className="w-4 h-4 text-neutral-500" />
-                                <span className="text-neutral-400">Project Type:</span>
-                                <span className="text-neutral-100 font-medium">{project.projectType}</span>
+                        </div>
+
+                        <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 border-dashed">
+                            <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <Shield className="w-3.5 h-3.5" />
+                                Security Leads
+                            </h4>
+                            <div className="space-y-4 mt-4">
+                                {(() => {
+                                    const getLeadName = (leadId: string) => {
+                                        if (!leadId) return "Unassigned";
+                                        // Try contribution first
+                                        const contribution = (project.contributions || []).find((c: any) => c.partnerId === leadId);
+                                        if (contribution?.partner?.user?.name) return contribution.partner.user.name;
+
+                                        // Fallback to partner list if available (we might need to fetch partners or ensure they are joined)
+                                        // For now, let's assume the backend sync will fix most cases, but we can add a fallback check
+                                        return contribution?.partner?.user?.name || "Unassigned";
+                                    };
+
+                                    return (
+                                        <>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs text-neutral-500">Project Lead</span>
+                                                <span className="text-xs text-neutral-300 font-medium">{getLeadName(project.projectLeadId)}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs text-neutral-500">Technical Lead</span>
+                                                <span className="text-xs text-neutral-300 font-medium">{getLeadName(project.techLeadId)}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs text-neutral-500">QA Lead</span>
+                                                <span className="text-xs text-neutral-300 font-medium">{getLeadName(project.qaLeadId)}</span>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>
-
-                    <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 border-dashed">
-                        <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                            <Shield className="w-3.5 h-3.5" />
-                            Security Leads
-                        </h4>
-                        <div className="space-y-4 mt-4">
-                            {(() => {
-                                const getLeadName = (leadId: string) => {
-                                    if (!leadId) return "Unassigned";
-                                    // Try contribution first
-                                    const contribution = (project.contributions || []).find((c: any) => c.partnerId === leadId);
-                                    if (contribution?.partner?.user?.name) return contribution.partner.user.name;
-
-                                    // Fallback to partner list if available (we might need to fetch partners or ensure they are joined)
-                                    // For now, let's assume the backend sync will fix most cases, but we can add a fallback check
-                                    return contribution?.partner?.user?.name || "Unassigned";
-                                };
-
-                                return (
-                                    <>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs text-neutral-500">Project Lead</span>
-                                            <span className="text-xs text-neutral-300 font-medium">{getLeadName(project.projectLeadId)}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs text-neutral-500">Technical Lead</span>
-                                            <span className="text-xs text-neutral-300 font-medium">{getLeadName(project.techLeadId)}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs text-neutral-500">QA Lead</span>
-                                            <span className="text-xs text-neutral-300 font-medium">{getLeadName(project.qaLeadId)}</span>
-                                        </div>
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );

@@ -33,7 +33,7 @@ export default function ContributionList({ contributions }: { contributions: Con
                                 <User className={`w-5 h-5 ${didNoWork ? 'text-neutral-600' : 'text-neutral-400'}`} />
                             </div>
                             <div>
-                                <p className="font-medium text-neutral-100">{c.partner.user.name}</p>
+                                <p className="font-medium text-neutral-100 whitespace-nowrap truncate max-w-[140px]">{c.partner.user.name}</p>
                                 <div className="flex items-center gap-3 mt-1">
                                     <p className="text-[10px] text-neutral-500 flex items-center gap-1 uppercase font-bold tracking-tighter">
                                         <Award className={`w-3 h-3 ${didNoWork ? 'text-neutral-600' : 'text-indigo-500'}`} /> {c.tasksCompleted || 0}/{c.totalTasks || 0} Tasks
