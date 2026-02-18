@@ -1,6 +1,7 @@
 import { type Request, type Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { calculateProjectContributions, calculateFinancials } from '../services/contributionService.js';
+import { notifyPayoutFinalized } from '../services/emailService.js';
 
 export const finalizeProject = async (req: Request, res: Response) => {
     const { projectId } = req.params;
@@ -53,6 +54,12 @@ export const finalizeProject = async (req: Request, res: Response) => {
         }
 
         res.json({ message: 'Project finalized and payouts generated', payouts: payoutData });
+
+        // Fire-and-forget email notification to all partners
+        notifyPayoutFinalized(project, payoutData.map(p => ({
+            ...p,
+            amount: p.totalPayout
+        }))).catch(() => { });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
     }

@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { type AuthRequest } from '../middleware/authMiddleware.js';
 import { AppError } from '../middleware/errorMiddleware.js';
+import { notifyTaskAssigned, notifyTaskReassigned, notifyTaskCompleted, notifyTaskComment } from '../services/emailService.js';
 
 export const createTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -32,9 +33,18 @@ export const createTask = async (req: AuthRequest, res: Response, next: NextFunc
                 status: status || 'BACKLOG',
                 completionPercent: status === 'DONE' ? 100 : 0
             },
+            include: {
+                assignedPartner: { include: { user: true } },
+                project: true
+            }
         });
 
         res.status(201).json(task);
+
+        // Fire-and-forget email notification
+        if (task.assignedPartnerId && task.project) {
+            notifyTaskAssigned(task, task.project).catch(() => { });
+        }
     } catch (error: any) {
         next(error);
     }
@@ -97,6 +107,22 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
         });
 
         res.json(task);
+
+        // Fire-and-forget email notifications
+        if (task.project) {
+            // Task re-assigned
+            if (assignedPartnerId && assignedPartnerId !== currentTask.assignedPartnerId) {
+                const prevPartner = currentTask.assignedPartnerId
+                    ? await prisma.partner.findUnique({ where: { id: currentTask.assignedPartnerId }, include: { user: true } })
+                    : null;
+                notifyTaskReassigned(task, task.project, prevPartner?.user?.name || 'Unassigned').catch(() => { });
+            }
+            // Task completed
+            if (finalStatus === 'DONE' && currentTask.status !== 'DONE') {
+                const completerName = task.completedBy?.name || task.assignedPartner?.user?.name || 'Someone';
+                notifyTaskCompleted(task, task.project, completerName).catch(() => { });
+            }
+        }
     } catch (error: any) {
         next(error);
     }
@@ -152,6 +178,15 @@ export const addTaskComment = async (req: AuthRequest, res: Response, next: Next
         });
 
         res.status(201).json(comment);
+
+        // Fire-and-forget email notification
+        const task = await prisma.task.findUnique({
+            where: { id: taskId },
+            include: { project: true }
+        });
+        if (task?.project) {
+            notifyTaskComment(task, task.project, comment.user?.name || 'Someone', comment).catch(() => { });
+        }
     } catch (error: any) {
         next(error);
     }
