@@ -250,11 +250,7 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                                                     <div>
                                                         <span className="text-sm font-black text-white block">{c.partner?.user?.name}</span>
                                                         <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-tighter flex items-center gap-1">
-                                                            {isNonContributor ? (
-                                                                <><Clock className="w-3 h-3 text-neutral-600" /> Not assigned to this project</>
-                                                            ) : (
-                                                                <><CheckCircle2 className="w-3 h-3 text-emerald-500" /> {completedCount}/{totalCount} Tasks Matrix</>
-                                                            )}
+                                                            <CheckCircle2 className={`w-3 h-3 ${isNonContributor ? 'text-neutral-600' : 'text-emerald-500'}`} /> {completedCount}/{totalCount} Tasks Matrix
                                                         </span>
                                                     </div>
                                                 </div>
