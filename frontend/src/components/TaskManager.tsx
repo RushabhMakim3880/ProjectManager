@@ -16,7 +16,8 @@ import {
     Star,
     Loader2,
     User,
-    MoreVertical
+    MoreVertical,
+    Pencil
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -77,6 +78,13 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
     const [newTask, setNewTask] = useState({
         name: '',
         category: categories[0] || '',
+        effortWeight: 1,
+        assignedPartnerId: ''
+    });
+    const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+    const [editTaskData, setEditTaskData] = useState({
+        name: '',
+        category: '',
         effortWeight: 1,
         assignedPartnerId: ''
     });
@@ -193,6 +201,32 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
         }
     };
 
+    const handleStartEdit = (task: Task) => {
+        setEditingTaskId(task.id);
+        setEditTaskData({
+            name: task.name,
+            category: task.category,
+            effortWeight: task.effortWeight,
+            assignedPartnerId: task.assignedPartnerId || ''
+        });
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingTaskId) return;
+        try {
+            await api.patch(`/projects/tasks/${editingTaskId}`, {
+                name: editTaskData.name,
+                category: editTaskData.category,
+                effortWeight: editTaskData.effortWeight,
+                assignedPartnerId: editTaskData.assignedPartnerId || null
+            });
+            setEditingTaskId(null);
+            onTaskUpdate();
+        } catch (err) {
+            console.error("Failed to update task", err);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between gap-4">
@@ -301,69 +335,147 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                                 transition={{ delay: idx * 0.05 }}
                                 className={`transition-all duration-300 ${expandedTaskId === task.id ? 'bg-indigo-500/[0.03]' : 'hover:bg-neutral-800/20'}`}
                             >
-                                {/* Task Row */}
-                                <div
-                                    onClick={() => handleTaskClick(task.id)}
-                                    className={`p-5 group cursor-pointer border-l-4 flex flex-col gap-4 ${expandedTaskId === task.id ? 'border-l-indigo-500' : 'border-l-transparent'}`}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-5">
-                                            <div className={`p-2.5 rounded-xl border-2 transition-all group-hover:scale-110 ${task.completionPercent === 100 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'}`}>
-                                                <CheckCircle2 className="w-5 h-5 shadow-[0_0_10px_currentColor]" />
+                                {/* Inline Edit Form */}
+                                {editingTaskId === task.id ? (
+                                    <div className="p-5 border-l-4 border-l-amber-500 bg-amber-500/[0.03]">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Task Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={editTaskData.name}
+                                                    onChange={(e) => setEditTaskData({ ...editTaskData, name: e.target.value })}
+                                                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-amber-500 transition-all outline-none font-bold"
+                                                />
                                             </div>
-                                            <div>
-                                                <p className="text-base font-black text-white leading-none tracking-tight">{task.name}</p>
-                                                <div className="flex items-center gap-3 mt-2">
-                                                    <span className="text-[9px] font-black px-2 py-0.5 rounded bg-neutral-950 text-neutral-500 uppercase tracking-widest border border-neutral-800">{task.category}</span>
-                                                    <span className="text-[9px] font-black text-indigo-400 flex items-center gap-1.5 uppercase tracking-widest italic">
-                                                        <Clock className="w-3 h-3" /> Effort Index: {task.effortWeight}
-                                                    </span>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Category</label>
+                                                    <select
+                                                        value={editTaskData.category}
+                                                        onChange={(e) => setEditTaskData({ ...editTaskData, category: e.target.value })}
+                                                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-amber-500 transition-all outline-none font-bold appearance-none"
+                                                    >
+                                                        {categories.map(cat => (
+                                                            <option key={cat} value={cat}>{cat}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Effort (1-10)</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max="100"
+                                                        value={editTaskData.effortWeight}
+                                                        onChange={(e) => setEditTaskData({ ...editTaskData, effortWeight: Number(e.target.value) })}
+                                                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-amber-500 transition-all outline-none font-bold"
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-6">
-                                            <div className="text-right">
-                                                <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mb-1.5">Asset Assigned</p>
-                                                <div className="flex items-center gap-2 justify-end">
-                                                    <div className="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-black text-[10px] text-indigo-400">
-                                                        {task.assignedPartner?.user?.name?.charAt(0) || <User className="w-3 h-3" />}
+                                        <div className="flex flex-col md:flex-row gap-4">
+                                            <div className="flex-1 space-y-1.5">
+                                                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Re-assign Partner</label>
+                                                <select
+                                                    value={editTaskData.assignedPartnerId}
+                                                    onChange={(e) => setEditTaskData({ ...editTaskData, assignedPartnerId: e.target.value })}
+                                                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-amber-500 transition-all outline-none font-bold appearance-none"
+                                                >
+                                                    <option value="">Unassigned</option>
+                                                    {partners.map(p => (
+                                                        <option key={p.id} value={p.id}>{p.user.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="flex items-end gap-3">
+                                                <button
+                                                    onClick={() => setEditingTaskId(null)}
+                                                    className="px-5 py-2.5 rounded-xl bg-neutral-900 border border-neutral-800 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-white transition-all"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveEdit}
+                                                    className="px-5 py-2.5 rounded-xl bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                                                >
+                                                    Save Changes
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Task Row */
+                                    <div
+                                        onClick={() => handleTaskClick(task.id)}
+                                        className={`p-5 group cursor-pointer border-l-4 flex flex-col gap-4 ${expandedTaskId === task.id ? 'border-l-indigo-500' : 'border-l-transparent'}`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-5">
+                                                <div className={`p-2.5 rounded-xl border-2 transition-all group-hover:scale-110 ${task.completionPercent === 100 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'}`}>
+                                                    <CheckCircle2 className="w-5 h-5 shadow-[0_0_10px_currentColor]" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-base font-black text-white leading-none tracking-tight">{task.name}</p>
+                                                    <div className="flex items-center gap-3 mt-2">
+                                                        <span className="text-[9px] font-black px-2 py-0.5 rounded bg-neutral-950 text-neutral-500 uppercase tracking-widest border border-neutral-800">{task.category}</span>
+                                                        <span className="text-[9px] font-black text-indigo-400 flex items-center gap-1.5 uppercase tracking-widest italic">
+                                                            <Clock className="w-3 h-3" /> Effort Index: {task.effortWeight}
+                                                        </span>
                                                     </div>
-                                                    <span className="text-xs font-black text-neutral-300 tracking-tight">{task.assignedPartner?.user?.name || 'Open Pool'}</span>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
-                                                className="p-2.5 text-neutral-700 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-rose-500/20"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            <div className="flex items-center gap-6">
+                                                <div className="text-right">
+                                                    <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mb-1.5">Asset Assigned</p>
+                                                    <div className="flex items-center gap-2 justify-end">
+                                                        <div className="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-black text-[10px] text-indigo-400">
+                                                            {task.assignedPartner?.user?.name?.charAt(0) || <User className="w-3 h-3" />}
+                                                        </div>
+                                                        <span className="text-xs font-black text-neutral-300 tracking-tight">{task.assignedPartner?.user?.name || 'Open Pool'}</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleStartEdit(task); }}
+                                                    className="p-2.5 text-neutral-700 hover:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-amber-500/20"
+                                                    title="Edit Task"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
+                                                    className="p-2.5 text-neutral-700 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-rose-500/20"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div className="flex items-center gap-4 px-2">
-                                        <div className="flex-1 h-1.5 bg-neutral-950 rounded-full overflow-hidden border border-neutral-800">
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${task.completionPercent}%` }}
-                                                className={`h-full transition-all duration-700 shadow-[0_0_15px_rgba(99,102,241,0.3)] ${task.completionPercent === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
-                                            />
-                                        </div>
-                                        <div className="relative">
-                                            <select
-                                                value={task.completionPercent}
-                                                onClick={(e) => e.stopPropagation()}
-                                                onChange={(e) => handleUpdateProgress(task.id, Number(e.target.value))}
-                                                className="bg-neutral-950 border border-neutral-800 rounded px-2 py-0.5 text-[10px] font-black text-indigo-400 outline-none hover:border-indigo-500/50 transition-all cursor-pointer appearance-none text-center min-w-[40px]"
-                                            >
-                                                <option value="0">0%</option>
-                                                <option value="25">25%</option>
-                                                <option value="50">50%</option>
-                                                <option value="75">75%</option>
-                                                <option value="100">100%</option>
-                                            </select>
+                                        <div className="flex items-center gap-4 px-2">
+                                            <div className="flex-1 h-1.5 bg-neutral-950 rounded-full overflow-hidden border border-neutral-800">
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${task.completionPercent}%` }}
+                                                    className={`h-full transition-all duration-700 shadow-[0_0_15px_rgba(99,102,241,0.3)] ${task.completionPercent === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                                                />
+                                            </div>
+                                            <div className="relative">
+                                                <select
+                                                    value={task.completionPercent}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onChange={(e) => handleUpdateProgress(task.id, Number(e.target.value))}
+                                                    className="bg-neutral-950 border border-neutral-800 rounded px-2 py-0.5 text-[10px] font-black text-indigo-400 outline-none hover:border-indigo-500/50 transition-all cursor-pointer appearance-none text-center min-w-[40px]"
+                                                >
+                                                    <option value="0">0%</option>
+                                                    <option value="25">25%</option>
+                                                    <option value="50">50%</option>
+                                                    <option value="75">75%</option>
+                                                    <option value="100">100%</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
 
                                 {/* Expanded Details Layer */}
                                 <AnimatePresence>
