@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, DollarSign, Send } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, DollarSign, Send, User } from 'lucide-react';
 import api from '@/lib/api';
 
 interface CapitalInjectionModalProps {
@@ -9,12 +9,20 @@ interface CapitalInjectionModalProps {
     onClose: () => void;
     onSuccess: () => void;
     currentUserId: string;
+    partners: Array<{ id: string, name: string }>;
 }
 
-export default function CapitalInjectionModal({ isOpen, onClose, onSuccess, currentUserId }: CapitalInjectionModalProps) {
+export default function CapitalInjectionModal({ isOpen, onClose, onSuccess, currentUserId, partners }: CapitalInjectionModalProps) {
     const [amount, setAmount] = useState('');
     const [notes, setNotes] = useState('');
+    const [selectedPartnerId, setSelectedPartnerId] = useState(currentUserId);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && currentUserId) {
+            setSelectedPartnerId(currentUserId);
+        }
+    }, [isOpen, currentUserId]);
 
     if (!isOpen) return null;
 
@@ -24,7 +32,7 @@ export default function CapitalInjectionModal({ isOpen, onClose, onSuccess, curr
 
         try {
             await api.post('/finance/capital-injection', {
-                partnerId: currentUserId, // Assuming the logged-in user is injecting
+                partnerId: selectedPartnerId,
                 amount: parseFloat(amount),
                 notes
             });
@@ -52,6 +60,24 @@ export default function CapitalInjectionModal({ isOpen, onClose, onSuccess, curr
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-neutral-400">Select Partner</label>
+                        <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                            <select
+                                value={selectedPartnerId}
+                                onChange={(e) => setSelectedPartnerId(e.target.value)}
+                                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
+                            >
+                                {partners.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
                     <div className="space-y-1.5">
                         <label className="text-xs font-medium text-neutral-400">Amount (₹)</label>
                         <input

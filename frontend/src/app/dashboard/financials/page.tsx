@@ -48,7 +48,7 @@ export default function FinancialsPage() {
         const fetchMe = async () => {
             try {
                 const res = await api.get('/auth/me');
-                setCurrentUserId(res.data.id); // Assuming /auth/me returns the partner ID or user ID linked to partner
+                setCurrentUserId(res.data.partnerId); // Use partnerId for financial transactions
             } catch (e) {
                 console.error("Failed to fetch user", e);
             }
@@ -234,6 +234,7 @@ export default function FinancialsPage() {
                 onClose={() => setIsInjectionModalOpen(false)}
                 onSuccess={fetchFinancials}
                 currentUserId={currentUserId}
+                partners={data?.equity || []}
             />
         </div>
     );
