@@ -10,10 +10,12 @@ import {
     Download,
     Plus,
     Building2,
-    Users
+    Users,
+    Clock // Added Clock icon
 } from 'lucide-react';
 import api from '@/lib/api';
 import CapitalInjectionModal from '@/components/CapitalInjectionModal';
+import CapitalHistoryModal from '@/components/CapitalHistoryModal'; // Added CapitalHistoryModal import
 
 interface EquityItem {
     id: string;
@@ -41,6 +43,8 @@ export default function FinancialsPage() {
     const [data, setData] = useState<FinancialData | null>(null);
     const [loading, setLoading] = useState(true);
     const [isInjectionModalOpen, setIsInjectionModalOpen] = useState(false);
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [selectedPartnerHistory, setSelectedPartnerHistory] = useState<{ id: string, name: string } | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string>('');
 
     // Fetch user ID deeply for the modal (In a real app, use AuthContext)
@@ -162,23 +166,37 @@ export default function FinancialsPage() {
                         <table className="w-full text-left">
                             <thead className="bg-neutral-950/50 text-xs text-neutral-400 font-semibold uppercase tracking-wider">
                                 <tr>
-                                    <th className="p-4">Partner</th>
-                                    <th className="p-4 text-right">Total Capital</th>
-                                    <th className="p-4 text-right">Equity Share</th>
-                                    <th className="p-4 text-right">Valuation (Est)</th>
+                                    <th className="px-6 py-4">Partner</th>
+                                    <th className="px-6 py-4 text-right">Total Capital</th>
+                                    <th className="px-6 py-4 text-right">Equity Share</th>
+                                    <th className="px-6 py-4 text-right">Valuation (Est)</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-neutral-800">
                                 {data.equity.map((partner) => (
                                     <tr key={partner.id} className="hover:bg-neutral-800/30 transition-colors">
-                                        <td className="p-4 font-medium text-white">{partner.name}</td>
-                                        <td className="p-4 text-right text-neutral-300">₹{partner.totalContributed.toLocaleString()}</td>
-                                        <td className="p-4 text-right">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className="font-medium text-white">{partner.name}</div>
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedPartnerHistory({ id: partner.id, name: partner.name });
+                                                        setHistoryModalOpen(true);
+                                                    }}
+                                                    className="p-1 text-neutral-500 hover:text-indigo-400 transition-colors"
+                                                    title="View Capital History"
+                                                >
+                                                    <Clock className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right text-neutral-300">₹{(partner.totalContributed || 0).toLocaleString()}</td>
+                                        <td className="px-6 py-4 text-right">
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                                                 {(partner.equity || 0).toFixed(2)}%
                                             </span>
                                         </td>
-                                        <td className="p-4 text-right font-bold text-emerald-400">
+                                        <td className="px-6 py-4 text-right font-bold text-emerald-400">
                                             ₹{(((data.financials?.netProfit || 0) * (partner.equity || 0)) / 100).toLocaleString()}
                                         </td>
                                     </tr>
@@ -235,6 +253,14 @@ export default function FinancialsPage() {
                 onSuccess={fetchFinancials}
                 currentUserId={currentUserId}
                 partners={data?.equity || []}
+            />
+
+            <CapitalHistoryModal
+                isOpen={historyModalOpen}
+                onClose={() => setHistoryModalOpen(false)}
+                partnerId={selectedPartnerHistory?.id || ''}
+                partnerName={selectedPartnerHistory?.name || ''}
+                onDeleteSuccess={fetchFinancials}
             />
         </div>
     );

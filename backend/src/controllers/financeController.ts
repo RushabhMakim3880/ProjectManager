@@ -145,3 +145,68 @@ export const injectCapital = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to inject capital' });
     }
 };
+
+// Get Capital Injection History
+export const getCapitalInjections = async (req: Request, res: Response) => {
+    const { partnerId } = req.params;
+    try {
+        const injections = await prisma.capitalInjection.findMany({
+            where: { partnerId },
+            orderBy: { date: 'desc' }
+        });
+        res.json(injections);
+    } catch (error) {
+        console.error('Error fetching capital injections:', error);
+        res.status(500).json({ error: 'Failed to fetch history' });
+    }
+};
+
+// Delete Capital Injection & Recalculate Equity
+export const deleteCapitalInjection = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+        await prisma.$transaction(async (tx: any) => {
+            // 1. Get the injection to be deleted
+            const injection = await tx.capitalInjection.findUniqueOrThrow({
+                where: { id }
+            });
+
+            // 2. Revert Partner's Total Contribution
+            await tx.partner.update({
+                where: { id: injection.partnerId },
+                data: {
+                    totalCapitalContributed: {
+                        decrement: injection.amount
+                    }
+                }
+            });
+
+            // 3. Recalculate Equity for ALL partners (Same logic as injectCapital)
+            const allPartners = await tx.partner.findMany();
+            const totalCapital = allPartners.reduce((sum: number, p: any) => sum + p.totalCapitalContributed, 0);
+
+            if (totalCapital > 0) {
+                for (const p of allPartners) {
+                    const newEquity = (p.totalCapitalContributed / totalCapital) * 100;
+                    await tx.partner.update({
+                        where: { id: p.id },
+                        data: { equityPercentage: newEquity }
+                    });
+                }
+            } else {
+                // Fallback if capital becomes 0 (unlikely but safe)
+                await tx.partner.updateMany({ data: { equityPercentage: 0 } });
+            }
+
+            // 4. Delete the record
+            await tx.capitalInjection.delete({ where: { id } });
+        });
+
+        res.json({ message: 'Capital injection deleted and equity recalculated' });
+
+    } catch (error) {
+        console.error('Error deleting capital injection:', error);
+        res.status(500).json({ error: 'Failed to delete capital injection' });
+    }
+};
