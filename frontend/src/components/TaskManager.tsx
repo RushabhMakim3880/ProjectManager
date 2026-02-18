@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus,
@@ -17,7 +17,8 @@ import {
     Loader2,
     User,
     MoreVertical,
-    Pencil
+    Pencil,
+    Filter
 } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -65,6 +66,23 @@ interface TaskManagerProps {
     onTaskUpdate: () => void;
 }
 
+const STATUS_FILTERS = [
+    { key: 'ALL', label: 'All', color: 'text-white', bg: 'bg-white/10' },
+    { key: 'BACKLOG', label: 'Backlog', color: 'text-neutral-400', bg: 'bg-neutral-500/10' },
+    { key: 'IN_PROGRESS', label: 'In Progress', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { key: 'REVIEW', label: 'Review', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { key: 'DONE', label: 'Done', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+] as const;
+
+const getStatusStyle = (status: string) => {
+    switch (status) {
+        case 'DONE': return { label: 'Done', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' };
+        case 'IN_PROGRESS': return { label: 'In Progress', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' };
+        case 'REVIEW': return { label: 'Review', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
+        default: return { label: 'Backlog', color: 'text-neutral-400', bg: 'bg-neutral-500/10', border: 'border-neutral-500/20' };
+    }
+};
+
 export default function TaskManager({ projectId, tasks, categories, onTaskUpdate }: TaskManagerProps) {
     const [partners, setPartners] = useState<Partner[]>([]);
     const [isCreating, setIsCreating] = useState(false);
@@ -75,6 +93,7 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
     const [commentType, setCommentType] = useState<'COMMENT' | 'REVIEW'>('COMMENT');
     const [loadingComments, setLoadingComments] = useState(false);
     const [submittingComment, setSubmittingComment] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<string>('ALL');
     const [newTask, setNewTask] = useState({
         name: '',
         category: categories[0] || '',
@@ -88,6 +107,17 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
         effortWeight: 1,
         assignedPartnerId: ''
     });
+
+    const filteredTasks = useMemo(() => {
+        if (statusFilter === 'ALL') return tasks;
+        return tasks.filter(t => t.status === statusFilter);
+    }, [tasks, statusFilter]);
+
+    const statusCounts = useMemo(() => {
+        const counts: Record<string, number> = { ALL: tasks.length };
+        tasks.forEach(t => { counts[t.status] = (counts[t.status] || 0) + 1; });
+        return counts;
+    }, [tasks]);
 
     const fetchComments = async (taskId: string) => {
         setLoadingComments(true);
@@ -229,20 +259,46 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter italic">
-                        <Layout className="w-5 h-5 text-indigo-500" />
-                        Technical Execution Matrix
-                    </h3>
-                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-[0.2em] mt-1 ml-8">Scope Management & Resource Allocation</p>
+            <div className="flex flex-col gap-5">
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter italic">
+                            <Layout className="w-5 h-5 text-indigo-500" />
+                            Technical Execution Matrix
+                        </h3>
+                        <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-[0.2em] mt-1 ml-8">Scope Management & Resource Allocation</p>
+                    </div>
+                    <button
+                        onClick={() => setIsCreating(true)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                    >
+                        <Plus className="w-4 h-4" /> Initialize Task
+                    </button>
                 </div>
-                <button
-                    onClick={() => setIsCreating(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-                >
-                    <Plus className="w-4 h-4" /> Initialize Task
-                </button>
+
+                {/* Status Filter Tabs */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                    {STATUS_FILTERS.map(f => {
+                        const count = statusCounts[f.key] || 0;
+                        const isActive = statusFilter === f.key;
+                        return (
+                            <button
+                                key={f.key}
+                                onClick={() => setStatusFilter(f.key)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${isActive
+                                        ? `${f.bg} ${f.color} border-current/20 shadow-lg`
+                                        : 'bg-neutral-900/50 text-neutral-500 border-neutral-800 hover:text-neutral-300 hover:border-neutral-700'
+                                    }`}
+                            >
+                                {f.label}
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-black ${isActive ? 'bg-white/10' : 'bg-neutral-800'
+                                    }`}>
+                                    {count}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {isCreating && (
@@ -326,8 +382,8 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
 
             <div className="glass-card overflow-hidden bg-neutral-900/20 border-neutral-800/50">
                 <div className="divide-y divide-neutral-800/50">
-                    {tasks.length > 0 ? (
-                        tasks.map((task, idx) => (
+                    {filteredTasks.length > 0 ? (
+                        filteredTasks.map((task, idx) => (
                             <motion.div
                                 key={task.id}
                                 initial={{ opacity: 0, x: -20 }}
@@ -411,42 +467,44 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                                         className={`p-5 group cursor-pointer border-l-4 flex flex-col gap-4 ${expandedTaskId === task.id ? 'border-l-indigo-500' : 'border-l-transparent'}`}
                                     >
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-5">
-                                                <div className={`p-2.5 rounded-xl border-2 transition-all group-hover:scale-110 ${task.completionPercent === 100 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'}`}>
+                                            <div className="flex items-center gap-4 min-w-0 flex-1">
+                                                <div className={`p-2.5 rounded-xl border-2 transition-all group-hover:scale-110 shrink-0 ${task.completionPercent === 100 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'}`}>
                                                     <CheckCircle2 className="w-5 h-5 shadow-[0_0_10px_currentColor]" />
                                                 </div>
-                                                <div>
-                                                    <p className="text-base font-black text-white leading-none tracking-tight">{task.name}</p>
-                                                    <div className="flex items-center gap-3 mt-2">
-                                                        <span className="text-[9px] font-black px-2 py-0.5 rounded bg-neutral-950 text-neutral-500 uppercase tracking-widest border border-neutral-800">{task.category}</span>
-                                                        <span className="text-[9px] font-black text-indigo-400 flex items-center gap-1.5 uppercase tracking-widest italic">
-                                                            <Clock className="w-3 h-3" /> Effort Index: {task.effortWeight}
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-sm font-bold text-white leading-tight tracking-tight truncate">{task.name}</p>
+                                                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                        {(() => {
+                                                            const s = getStatusStyle(task.status); return (
+                                                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${s.bg} ${s.color} border ${s.border} uppercase tracking-wider`}>{s.label}</span>
+                                                            );
+                                                        })()}
+                                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-neutral-950 text-neutral-500 uppercase tracking-wider border border-neutral-800">{task.category}</span>
+                                                        <span className="text-[9px] font-bold text-indigo-400/70 flex items-center gap-1 uppercase tracking-wider">
+                                                            <Clock className="w-3 h-3" /> Effort: {task.effortWeight}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-6">
-                                                <div className="text-right">
-                                                    <p className="text-[9px] font-black text-neutral-600 uppercase tracking-widest mb-1.5">Asset Assigned</p>
-                                                    <div className="flex items-center gap-2 justify-end">
-                                                        <div className="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-black text-[10px] text-indigo-400">
-                                                            {task.assignedPartner?.user?.name?.charAt(0) || <User className="w-3 h-3" />}
-                                                        </div>
-                                                        <span className="text-xs font-black text-neutral-300 tracking-tight">{task.assignedPartner?.user?.name || 'Open Pool'}</span>
+                                            <div className="flex items-center gap-4 shrink-0 ml-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-bold text-[10px] text-indigo-400 shrink-0">
+                                                        {task.assignedPartner?.user?.name?.charAt(0) || <User className="w-3 h-3" />}
                                                     </div>
+                                                    <span className="text-xs font-bold text-neutral-300 tracking-tight whitespace-nowrap max-w-[120px] truncate">{task.assignedPartner?.user?.name || 'Unassigned'}</span>
                                                 </div>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleStartEdit(task); }}
-                                                    className="p-2.5 text-neutral-700 hover:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-amber-500/20"
+                                                    className="p-2 text-neutral-700 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-amber-500/20"
                                                     title="Edit Task"
                                                 >
-                                                    <Pencil className="w-4 h-4" />
+                                                    <Pencil className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
-                                                    className="p-2.5 text-neutral-700 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-rose-500/20"
+                                                    className="p-2 text-neutral-700 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-rose-500/20"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         </div>
@@ -569,7 +627,9 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                             </motion.div>
                         ))
                     ) : (
-                        <div className="p-12 text-center text-neutral-500 italic text-sm font-bold uppercase tracking-widest">No Operational Tasks In Backlog</div>
+                        <div className="p-12 text-center text-neutral-500 italic text-sm font-bold uppercase tracking-widest">
+                            {statusFilter === 'ALL' ? 'No tasks created yet' : `No ${STATUS_FILTERS.find(f => f.key === statusFilter)?.label || ''} tasks`}
+                        </div>
                     )}
                     {/* Completer Selection Modal */}
                     <AnimatePresence>
