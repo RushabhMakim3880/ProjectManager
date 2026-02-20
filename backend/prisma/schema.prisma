@@ -144,6 +144,9 @@ model Project {
   dependencies      String?        // third-party access, client inputs
   riskLevel         String?        @default("LOW")
   
+  // External Integrations
+  githubUrl         String?        // GitHub Repository URL
+  
   // Team Assignment (Lead IDs)
   projectLeadId     String?
   techLeadId        String?

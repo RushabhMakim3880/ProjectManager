@@ -14,7 +14,7 @@ export const createProject = async (req: Request, res: Response, next: NextFunct
             enableContributionTracking, lockWeights, enableTaskLogging, effortScale, timeTrackingEnabled, approvalRequired,
             visibility, canEdit, canAddTasks, canFinalize, autoLock,
             specialInstructions, riskNotes, clientConstraints, escalationContact, internalRemarks,
-            milestones
+            milestones, githubUrl
         } = req.body;
 
         const project = await prisma.project.create({
@@ -75,6 +75,7 @@ export const createProject = async (req: Request, res: Response, next: NextFunct
                 clientConstraints,
                 escalationContact,
                 internalRemarks,
+                githubUrl,
 
                 milestones: {
                     create: milestones?.map((m: any) => ({
@@ -170,7 +171,7 @@ export const updateProject = async (req: Request, res: Response, next: NextFunct
             objectives, deliverables, outOfScope, techStack, environments, accessReqs, dependencies, riskLevel,
             projectLeadId, techLeadId, commsLeadId, qaLeadId, salesOwnerId,
             enableContributionTracking, lockWeights, enableTaskLogging, autoLock,
-            milestones
+            milestones, githubUrl
         } = req.body;
 
         const project = await prisma.project.update({
@@ -213,7 +214,8 @@ export const updateProject = async (req: Request, res: Response, next: NextFunct
                 techLeadId,
                 commsLeadId,
                 qaLeadId,
-                salesOwnerId
+                salesOwnerId,
+                githubUrl
             }
         });
 

@@ -13,7 +13,7 @@ import {
     X,
     MessageSquare,
     Send,
-    Star,
+
     Loader2,
     User,
     MoreVertical,
@@ -94,6 +94,7 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
     const [loadingComments, setLoadingComments] = useState(false);
     const [submittingComment, setSubmittingComment] = useState(false);
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
+    const [partnerFilter, setPartnerFilter] = useState<string>('ALL');
     const [newTask, setNewTask] = useState({
         name: '',
         category: categories[0] || '',
@@ -109,9 +110,11 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
     });
 
     const filteredTasks = useMemo(() => {
-        if (statusFilter === 'ALL') return tasks;
-        return tasks.filter(t => t.status === statusFilter);
-    }, [tasks, statusFilter]);
+        let res = tasks;
+        if (statusFilter !== 'ALL') res = res.filter(t => t.status === statusFilter);
+        if (partnerFilter !== 'ALL') res = res.filter(t => t.assignedPartnerId === partnerFilter);
+        return res;
+    }, [tasks, statusFilter, partnerFilter]);
 
     const statusCounts = useMemo(() => {
         const counts: Record<string, number> = { ALL: tasks.length };
@@ -276,28 +279,58 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                     </button>
                 </div>
 
-                {/* Status Filter Tabs */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                    {STATUS_FILTERS.map(f => {
-                        const count = statusCounts[f.key] || 0;
-                        const isActive = statusFilter === f.key;
-                        return (
-                            <button
-                                key={f.key}
-                                onClick={() => setStatusFilter(f.key)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${isActive
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                    {/* Status Filter Tabs */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
+                        {STATUS_FILTERS.map(f => {
+                            const count = statusCounts[f.key] || 0;
+                            const isActive = statusFilter === f.key;
+                            return (
+                                <button
+                                    key={f.key}
+                                    onClick={() => setStatusFilter(f.key)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${isActive
                                         ? `${f.bg} ${f.color} border-current/20 shadow-lg`
                                         : 'bg-neutral-900/50 text-neutral-500 border-neutral-800 hover:text-neutral-300 hover:border-neutral-700'
+                                        }`}
+                                >
+                                    {f.label}
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-black ${isActive ? 'bg-white/10' : 'bg-neutral-800'
+                                        }`}>
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Partner Filter */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
+                        <div className="px-2 py-1.5 rounded-lg bg-neutral-900 border border-neutral-800">
+                            <Filter className="w-3 h-3 text-neutral-500" />
+                        </div>
+                        <button
+                            onClick={() => setPartnerFilter('ALL')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${partnerFilter === 'ALL'
+                                ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-lg'
+                                : 'bg-neutral-900/50 text-neutral-500 border-neutral-800 hover:text-neutral-300 hover:border-neutral-700'
+                                }`}
+                        >
+                            All Partners
+                        </button>
+                        {partners.map(p => (
+                            <button
+                                key={p.id}
+                                onClick={() => setPartnerFilter(p.id)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${partnerFilter === p.id
+                                    ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-lg'
+                                    : 'bg-neutral-900/50 text-neutral-500 border-neutral-800 hover:text-neutral-300 hover:border-neutral-700'
                                     }`}
                             >
-                                {f.label}
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-black ${isActive ? 'bg-white/10' : 'bg-neutral-800'
-                                    }`}>
-                                    {count}
-                                </span>
+                                {p.user.name}
                             </button>
-                        );
-                    })}
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -319,33 +352,20 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                                     placeholder="Define the technical objective..."
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Classification</label>
-                                    <select
-                                        value={newTask.category}
-                                        onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
-                                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-5 py-3 text-sm text-white focus:border-indigo-500 transition-all outline-none capitalize font-bold appearance-none"
-                                    >
-                                        {categories.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Effort Matrix (1-10)</label>
-                                    <input
-                                        type="number"
-                                        required
-                                        min="1"
-                                        max="100"
-                                        value={newTask.effortWeight}
-                                        onChange={(e) => setNewTask({ ...newTask, effortWeight: Number(e.target.value) })}
-                                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-5 py-3 text-sm text-white focus:border-indigo-500 transition-all outline-none font-bold"
-                                    />
-                                </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Classification</label>
+                                <select
+                                    value={newTask.category}
+                                    onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
+                                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-5 py-3 text-sm text-white focus:border-indigo-500 transition-all outline-none capitalize font-bold appearance-none"
+                                >
+                                    {categories.map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
+
                         <div className="flex flex-col md:flex-row gap-6">
                             <div className="flex-1 space-y-1.5">
                                 <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Lead Assignment</label>
@@ -404,30 +424,17 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                                                     className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-amber-500 transition-all outline-none font-bold"
                                                 />
                                             </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Category</label>
-                                                    <select
-                                                        value={editTaskData.category}
-                                                        onChange={(e) => setEditTaskData({ ...editTaskData, category: e.target.value })}
-                                                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-amber-500 transition-all outline-none font-bold appearance-none"
-                                                    >
-                                                        {categories.map(cat => (
-                                                            <option key={cat} value={cat}>{cat}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Effort (1-10)</label>
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        max="100"
-                                                        value={editTaskData.effortWeight}
-                                                        onChange={(e) => setEditTaskData({ ...editTaskData, effortWeight: Number(e.target.value) })}
-                                                        className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-amber-500 transition-all outline-none font-bold"
-                                                    />
-                                                </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">Category</label>
+                                                <select
+                                                    value={editTaskData.category}
+                                                    onChange={(e) => setEditTaskData({ ...editTaskData, category: e.target.value })}
+                                                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white focus:border-amber-500 transition-all outline-none font-bold appearance-none"
+                                                >
+                                                    {categories.map(cat => (
+                                                        <option key={cat} value={cat}>{cat}</option>
+                                                    ))}
+                                                </select>
                                             </div>
                                         </div>
                                         <div className="flex flex-col md:flex-row gap-4">
@@ -480,9 +487,6 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                                                             );
                                                         })()}
                                                         <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-neutral-950 text-neutral-500 uppercase tracking-wider border border-neutral-800">{task.category}</span>
-                                                        <span className="text-[9px] font-bold text-indigo-400/70 flex items-center gap-1 uppercase tracking-wider">
-                                                            <Clock className="w-3 h-3" /> Effort: {task.effortWeight}
-                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>

@@ -27,7 +27,11 @@ import {
     Layout,
     Target,
     LockOpen,
-    Edit3
+    Edit3,
+    Github,
+    Star,
+    GitFork,
+    GitCommit
 } from 'lucide-react';
 import ContributionList from '@/components/ContributionList';
 import FinancialVisualizer from '@/components/FinancialVisualizer';
@@ -49,6 +53,7 @@ export default function ProjectDetailsPage() {
     const [editingProject, setEditingProject] = useState<any>(null);
     const [totalPartnerCount, setTotalPartnerCount] = useState(1);
     const [allPartners, setAllPartners] = useState<any[]>([]);
+    const [githubStats, setGithubStats] = useState<any>(null);
 
     const fetchProject = async () => {
         try {
@@ -70,6 +75,35 @@ export default function ProjectDetailsPage() {
             setAllPartners(partners);
         }).catch(() => { });
     }, [id]);
+
+    useEffect(() => {
+        if (project?.githubUrl) {
+            const fetchGithubStats = async () => {
+                try {
+                    // Extract owner and repo from URL
+                    // Support formats: https://github.com/owner/repo or github.com/owner/repo
+                    const parts = project.githubUrl.split('github.com/')[1]?.split('/');
+                    if (parts && parts.length >= 2) {
+                        const owner = parts[0];
+                        const repo = parts[1].replace('.git', '');
+                        const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            setGithubStats({
+                                stars: data.stargazers_count,
+                                forks: data.forks_count,
+                                lastCommit: data.pushed_at,
+                                url: data.html_url
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch GitHub stats", e);
+                }
+            };
+            fetchGithubStats();
+        }
+    }, [project?.githubUrl]);
 
     const handleRecalculate = async () => {
         try {
@@ -310,6 +344,27 @@ export default function ProjectDetailsPage() {
                             <div className="glass-card p-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Workflow Management</h4>
+                                    {githubStats && (
+                                        <div className="flex items-center gap-4">
+                                            <a href={githubStats.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-neutral-400 hover:text-white transition-colors">
+                                                <Github className="w-3.5 h-3.5" />
+                                                GitHub Repo
+                                            </a>
+                                            <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-800">
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400" title="Stars">
+                                                    <Star className="w-3 h-3" /> {githubStats.stars}
+                                                </div>
+                                                <div className="w-px h-3 bg-neutral-800" />
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-400" title="Forks">
+                                                    <GitFork className="w-3 h-3" /> {githubStats.forks}
+                                                </div>
+                                                <div className="w-px h-3 bg-neutral-800" />
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400" title="Last Commit">
+                                                    <GitCommit className="w-3 h-3" /> {new Date(githubStats.lastCommit).toLocaleDateString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <TaskManager

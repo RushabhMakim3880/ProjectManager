@@ -74,6 +74,7 @@ export default function CreateProjectModal({ onClose, initialData }: { onClose: 
         accessReqs: '',
         dependencies: '',
         riskLevel: 'LOW',
+        githubUrl: '',
 
         // Team
         projectLeadId: '',
@@ -134,7 +135,8 @@ export default function CreateProjectModal({ onClose, initialData }: { onClose: 
                         milestones: initialData.milestones?.map((m: any) => ({
                             ...m,
                             dueDate: m.dueDate ? new Date(m.dueDate).toISOString().split('T')[0] : ''
-                        })) || []
+                        })) || [],
+                        githubUrl: initialData.githubUrl || ''
                     });
                 }
             } catch (err) {
@@ -393,6 +395,16 @@ export default function CreateProjectModal({ onClose, initialData }: { onClose: 
                                 <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Environments</label>
                                 <input type="text" className="input-field" value={formData.environments} onChange={(e) => setFormData({ ...formData, environments: e.target.value })} />
                             </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">GitHub Repository URL</label>
+                            <input
+                                type="text"
+                                className="input-field"
+                                placeholder="https://github.com/username/repo"
+                                value={formData.githubUrl}
+                                onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
+                            />
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">Project Objectives</label>
