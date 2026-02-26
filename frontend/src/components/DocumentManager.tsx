@@ -100,9 +100,10 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId }) => {
                 },
             });
             fetchDocuments();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Upload failed", error);
-            alert("Failed to upload documents. Only PDF and Images are allowed (max 50MB per file).");
+            const errMsg = error.response?.data?.message || error.message || "Unknown error";
+            alert(`Failed to upload documents: ${errMsg}\n\nNote: PDFs and Images are allowed (max 50MB per file).`);
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
