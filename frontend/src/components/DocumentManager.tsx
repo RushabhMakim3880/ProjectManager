@@ -75,20 +75,22 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId }) => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFileUpload(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFileUpload(e.dataTransfer.files);
         }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFileUpload(e.target.files[0]);
+        if (e.target.files && e.target.files.length > 0) {
+            handleFileUpload(e.target.files);
         }
     };
 
-    const handleFileUpload = async (file: File) => {
+    const handleFileUpload = async (files: FileList | File[]) => {
         const formData = new FormData();
-        formData.append('file', file);
+        Array.from(files).forEach(file => {
+            formData.append('files', file); // Use 'files' plural to match backend expectation
+        });
 
         try {
             setUploading(true);
@@ -100,9 +102,10 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId }) => {
             fetchDocuments();
         } catch (error) {
             console.error("Upload failed", error);
-            alert("Failed to upload document. Only PDF and Images are allowed (max 10MB).");
+            alert("Failed to upload documents. Only PDF and Images are allowed (max 50MB per file).");
         } finally {
             setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -179,6 +182,7 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({ projectId }) => {
                     onChange={handleFileChange}
                     className="hidden"
                     accept=".pdf,image/*"
+                    multiple
                 />
             </div>
 

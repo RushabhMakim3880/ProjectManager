@@ -8,27 +8,31 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const uploadDocument = async (req: Request, res: Response, next: NextFunction) => {
+export const uploadDocuments = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { projectId } = req.params;
-        const file = req.file;
+        const files = req.files as Express.Multer.File[];
 
-        if (!file) {
-            return next(new AppError('No file uploaded', 400));
+        if (!files || files.length === 0) {
+            return next(new AppError('No files uploaded', 400));
         }
 
-        const document = await prisma.projectDocument.create({
-            data: {
-                projectId,
-                name: file.originalname,
-                fileKey: file.filename,
-                mimeType: file.mimetype,
-                size: file.size,
-                uploadedById: (req as any).user.id,
-            },
-        });
+        const documents = await Promise.all(
+            files.map(file =>
+                prisma.projectDocument.create({
+                    data: {
+                        projectId,
+                        name: file.originalname,
+                        fileKey: file.filename,
+                        mimeType: file.mimetype,
+                        size: file.size,
+                        uploadedById: (req as any).user.id,
+                    },
+                })
+            )
+        );
 
-        res.status(201).json(document);
+        res.status(201).json(documents);
     } catch (error: any) {
         next(error);
     }
