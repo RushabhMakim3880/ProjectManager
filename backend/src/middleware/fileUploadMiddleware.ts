@@ -8,9 +8,13 @@ const __dirname = path.dirname(__filename);
 
 const uploadDir = path.join(__dirname, '../../uploads/documents');
 
-// Ensure upload directory exists
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+// Ensure upload directory exists - Wrapped in try-catch for read-only environments like Vercel
+try {
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
+} catch (error) {
+    console.warn('Could not create upload directory. This is expected in read-only environments:', error);
 }
 
 const storage = multer.diskStorage({

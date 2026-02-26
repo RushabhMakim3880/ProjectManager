@@ -44,3 +44,6 @@ backend/prisma/dev.db-journal
 
 # Prisma
 backend/generated/
+
+# Uploads
+backend/uploads/
