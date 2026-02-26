@@ -3,9 +3,11 @@ import { createProject, getProjects, getProjectById, updateProject, deleteProjec
 import { createTask, updateTask, getTasksByProject, deleteTask, getTaskComments, addTaskComment, getTaskStats } from '../controllers/taskController.js';
 import { recalculateProject } from '../controllers/financialController.js';
 import { getTransactions, createTransaction, deleteTransaction } from '../controllers/transactionController.js';
+import { uploadDocument, getDocuments, downloadDocument, deleteDocument } from '../controllers/documentController.js';
 import { finalizeProject } from '../controllers/payoutController.js';
 import { logAction } from '../middleware/auditMiddleware.js';
 import { authenticate, authorize } from '../middleware/authMiddleware.js';
+import { upload } from '../middleware/fileUploadMiddleware.js';
 
 const router = Router();
 
@@ -31,7 +33,13 @@ router.post('/tasks/:id/comments', authenticate, addTaskComment);
 
 // Transaction routes
 router.get('/:projectId/transactions', authenticate, getTransactions);
-router.post('/transactions', authenticate, authorize(['ADMIN']), createTransaction);
-router.delete('/transactions/:id', authenticate, authorize(['ADMIN']), deleteTransaction);
+router.post('/transactions', authenticate, authorize(['ADMIN', 'PARTNER']), createTransaction);
+router.delete('/transactions/:id', authenticate, authorize(['ADMIN', 'PARTNER']), deleteTransaction);
+
+// Document routes
+router.get('/:projectId/documents', authenticate, getDocuments);
+router.post('/:projectId/documents', authenticate, upload.single('file'), uploadDocument);
+router.get('/documents/:id/download', authenticate, downloadDocument);
+router.delete('/documents/:id', authenticate, authorize(['ADMIN']), deleteDocument);
 
 export default router;

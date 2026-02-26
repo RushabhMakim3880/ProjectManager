@@ -25,6 +25,7 @@ model User {
   auditLogs     AuditLog[]
   completedTasks Task[]    @relation("TaskCompletion")
   taskComments  TaskComment[]
+  documents     ProjectDocument[]
 }
 
 model Partner {
@@ -182,9 +183,23 @@ model Project {
   financialRecords  Financial[]
   transactions      Transaction[]
   payouts           Payout[]
+  documents         ProjectDocument[]
   isLocked          Boolean        @default(false)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
+}
+
+model ProjectDocument {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id])
+  name         String   // Display name
+  fileKey      String   // Unique filename on disk
+  mimeType     String
+  size         Int
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
 }
 
 model Transaction {

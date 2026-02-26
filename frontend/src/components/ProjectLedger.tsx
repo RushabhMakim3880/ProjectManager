@@ -89,8 +89,10 @@ export default function ProjectLedger({ projectId, onUpdate }: ProjectLedgerProp
             });
             fetchTransactions();
             if (onUpdate) onUpdate();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to add transaction:', error);
+            const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
+            alert(`Failed to add transaction: ${errorMessage}`);
         }
     };
 

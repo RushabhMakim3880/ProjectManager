@@ -19,6 +19,15 @@ export const getTransactions = async (req: Request, res: Response) => {
 export const createTransaction = async (req: AuthRequest, res: Response) => {
     const { projectId, amount, type, category, method, transactionId, description, date } = req.body;
     try {
+        if (req.user?.role === 'PARTNER') {
+            const partner = await prisma.partner.findUnique({
+                where: { userId: req.user.id }
+            });
+            if (!partner?.canEditFinancials) {
+                return res.status(403).json({ error: 'Partner does not have financial editing permissions' });
+            }
+        }
+
         const transaction = await prisma.transaction.create({
             data: {
                 projectId,
@@ -44,6 +53,15 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
 export const deleteTransaction = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     try {
+        if (req.user?.role === 'PARTNER') {
+            const partner = await prisma.partner.findUnique({
+                where: { userId: req.user.id }
+            });
+            if (!partner?.canEditFinancials) {
+                return res.status(403).json({ error: 'Partner does not have financial editing permissions' });
+            }
+        }
+
         const transaction = await prisma.transaction.findUnique({ where: { id } });
         if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
 

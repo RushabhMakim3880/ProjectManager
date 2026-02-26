@@ -44,6 +44,7 @@ import TaskManager from '@/components/TaskManager';
 import FinancialBreakdown from '@/components/FinancialBreakdown';
 import ProjectLedger from '@/components/ProjectLedger';
 import CreateProjectModal from '@/components/CreateProjectModal';
+import DocumentManager from '@/components/DocumentManager';
 import api from '@/lib/api';
 import { formatCurrency } from '@/lib/currency';
 
@@ -258,7 +259,8 @@ export default function ProjectDetailsPage() {
                     { id: 'client', label: 'Engagement', icon: Users },
                     { id: 'team', label: 'Team & Logic', icon: Settings },
                     { id: 'earnings', label: 'Financial Breakdown', icon: DollarSign },
-                    { id: 'ledger', label: 'Payments & Ledger', icon: Receipt }, // Added new tab
+                    { id: 'ledger', label: 'Payments & Ledger', icon: Receipt },
+                    { id: 'documents', label: 'Documents', icon: FileText },
                 ].map((tab) => (
                     <button
                         key={tab.id}
@@ -605,9 +607,13 @@ export default function ProjectDetailsPage() {
                     {activeTab === 'ledger' && (
                         <ProjectLedger projectId={params.id} onUpdate={fetchProject} />
                     )}
+
+                    {activeTab === 'documents' && (
+                        <DocumentManager projectId={params.id} />
+                    )}
                 </div>
 
-                {(activeTab !== 'earnings' && activeTab !== 'ledger') && (
+                {(activeTab !== 'earnings' && activeTab !== 'ledger' && activeTab !== 'documents') && (
                     <div className="lg:col-span-4 space-y-8">
                         <ContributionList contributions={(project.contributions || []).map((c: any) => {
                             const partnerTasks = (project.tasks || []).filter((t: any) => t.assignedPartnerId === c.partnerId);
