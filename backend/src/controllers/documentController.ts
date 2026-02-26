@@ -12,8 +12,7 @@ const __dirname = path.dirname(__filename);
 
 // Shared logic for upload directory path
 const getUploadDir = () => {
-    const baseDir = process.env.VERCEL ? os.tmpdir() : path.join(__dirname, '../../');
-    return path.join(baseDir, 'uploads/documents');
+    return process.env.VERCEL ? os.tmpdir() : path.join(__dirname, '../../uploads/documents');
 };
 
 export const uploadDocuments = async (req: Request, res: Response, next: NextFunction) => {

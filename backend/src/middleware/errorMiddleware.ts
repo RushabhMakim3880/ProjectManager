@@ -33,6 +33,14 @@ export const errorMiddleware = (err: any, req: Request, res: Response, next: Nex
         });
     }
 
+    // Handle Multer specific errors (like LIMIT_FILE_SIZE, LIMIT_UNEXPECTED_FILE)
+    if (err.code && typeof err.code === 'string' && err.code.startsWith('LIMIT_')) {
+        return res.status(400).json({
+            status: 'error',
+            message: `File upload error: ${err.message}. ${err.code === 'LIMIT_UNEXPECTED_FILE' ? 'You might be uploading too many files at once (Limit: 20).' : ''}`
+        });
+    }
+
     // Programming or other unknown error: don't leak error details
     console.error('ERROR 💥', err);
     return res.status(500).json({

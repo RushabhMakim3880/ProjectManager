@@ -38,7 +38,7 @@ router.delete('/transactions/:id', authenticate, authorize(['ADMIN', 'PARTNER'])
 
 // Document routes
 router.get('/:projectId/documents', authenticate, getDocuments);
-router.post('/:projectId/documents', authenticate, upload.array('files', 10), uploadDocuments);
+router.post('/:projectId/documents', authenticate, upload.array('files', 20), uploadDocuments);
 router.get('/documents/:id/download', authenticate, downloadDocument);
 router.delete('/documents/:id', authenticate, authorize(['ADMIN']), deleteDocument);
 

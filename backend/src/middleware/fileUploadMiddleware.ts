@@ -9,26 +9,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Use /tmp for Vercel, or local uploads for development
-const baseDir = process.env.VERCEL ? os.tmpdir() : path.join(__dirname, '../../');
-const uploadDir = path.join(baseDir, 'uploads/documents');
+// On Vercel, we use the root of /tmp directly to ensure we have write permissions
+const uploadDir = process.env.VERCEL ? os.tmpdir() : path.join(__dirname, '../../uploads/documents');
 
-console.log('UPLOAD_DIR_CONFIG:', {
-    baseDir,
-    uploadDir,
-    isVercel: !!process.env.VERCEL,
-    env_node: process.env.NODE_ENV
-});
-
-// Ensure upload directory exists - Wrapped in try-catch for read-only environments like Vercel
-try {
-    if (!fs.existsSync(uploadDir)) {
+// Ensure upload directory exists for local development
+if (!process.env.VERCEL && !fs.existsSync(uploadDir)) {
+    try {
         fs.mkdirSync(uploadDir, { recursive: true });
-        console.log('CREATED_UPLOAD_DIR:', uploadDir);
-    }
-} catch (error) {
-    if (process.env.VERCEL) {
-        console.log('Note: Could not create upload directory on Vercel (read-only), but /tmp should be available.');
-    } else {
+    } catch (error) {
         console.warn('Could not create upload directory:', error);
     }
 }
