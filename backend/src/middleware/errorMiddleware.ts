@@ -41,10 +41,15 @@ export const errorMiddleware = (err: any, req: Request, res: Response, next: Nex
         });
     }
 
-    // Programming or other unknown error: don't leak error details
+    // Diagnostic production error (Temporary for debugging Vercel 500s)
     console.error('ERROR 💥', err);
     return res.status(500).json({
         status: 'error',
-        message: 'Something went very wrong!'
+        message: 'Something went very wrong!',
+        diagnostic: {
+            message: err.message,
+            code: err.code || 'UNKNOWN_CODE',
+            path: req.path
+        }
     });
 };

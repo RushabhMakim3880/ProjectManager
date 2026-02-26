@@ -35,7 +35,7 @@ export const uploadDocuments = async (req: Request, res: Response, next: NextFun
                         fileKey: file.filename,
                         mimeType: file.mimetype,
                         size: file.size,
-                        uploadedById: (req as any).user.id,
+                        uploadedById: (req as any).user.userId,
                     },
                 })
             )
