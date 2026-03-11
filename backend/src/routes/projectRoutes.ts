@@ -4,12 +4,15 @@ import { createTask, updateTask, getTasksByProject, deleteTask, getTaskComments,
 import { recalculateProject } from '../controllers/financialController.js';
 import { getTransactions, createTransaction, deleteTransaction } from '../controllers/transactionController.js';
 import { uploadDocuments, getDocuments, downloadDocument, deleteDocument } from '../controllers/documentController.js';
-import { finalizeProject } from '../controllers/payoutController.js';
+import { finalizeProject, logAdvancePayout, getAdvances } from '../controllers/payoutController.js';
 import { logAction } from '../middleware/auditMiddleware.js';
 import { authenticate, authorize } from '../middleware/authMiddleware.js';
 import { upload } from '../middleware/fileUploadMiddleware.js';
 
 const router = Router();
+
+// Task routes (Must be before /:id)
+router.get('/tasks/stats', authenticate, getTaskStats);
 
 // Project routes
 router.get('/', authenticate, getProjects);
@@ -21,6 +24,8 @@ router.patch('/:id/lock', authenticate, authorize(['ADMIN']), lockProject);
 router.patch('/:id/unlock', authenticate, authorize(['ADMIN']), unlockProject);
 router.post('/:projectId/recalculate', authenticate, authorize(['ADMIN']), recalculateProject);
 router.post('/:projectId/finalize', authenticate, authorize(['ADMIN']), logAction('FINALIZE', 'PROJECT'), finalizeProject);
+router.post('/:projectId/advances', authenticate, authorize(['ADMIN']), logAction('ADVANCE_PAYOUT', 'PROJECT'), logAdvancePayout);
+router.get('/:projectId/advances', authenticate, authorize(['ADMIN', 'PARTNER']), getAdvances);
 
 // Task routes
 router.get('/:projectId/tasks', authenticate, getTasksByProject);

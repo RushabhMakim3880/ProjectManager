@@ -20,38 +20,49 @@ export default function DashboardPage() {
         totalPartners: 0,
         revenueMTD: 0,
         completedTasks: 0,
-        pendingTasks: 0
+        pendingTasks: 0,
+        totalEnquiries: 0,
+        weightedPipeline: 0
     });
     const [recentProjects, setRecentProjects] = useState<any[]>([]);
+    const [recentEnquiries, setRecentEnquiries] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             setLoading(true);
             try {
-                const [projectsRes, partnersRes, taskStatsRes] = await Promise.all([
+                const [projectsRes, partnersRes, taskStatsRes, enquiriesRes] = await Promise.all([
                     api.get('/projects'),
                     api.get('/partners'),
-                    api.get('/projects/tasks/stats')
+                    api.get('/projects/tasks/stats'),
+                    api.get('/enquiries')
                 ]);
 
                 const projects = projectsRes.data;
                 const partners = partnersRes.data;
                 const taskStats = taskStatsRes.data;
+                const enquiries = enquiriesRes.data;
 
                 // Simple metric calculation
                 const active = projects.filter((p: any) => p.status === 'ACTIVE').length;
                 const revenue = projects.reduce((acc: number, p: any) => acc + (p.totalValue || 0), 0);
+
+                // CRM calculation
+                const weighted = enquiries.reduce((acc: number, e: any) => acc + ((e.estimatedValue || 0) * ((e.probability || 0) / 100)), 0);
 
                 setStats({
                     activeProjects: active,
                     totalPartners: partners.length,
                     revenueMTD: revenue,
                     completedTasks: taskStats.completed || 0,
-                    pendingTasks: taskStats.pending || 0
+                    pendingTasks: taskStats.pending || 0,
+                    totalEnquiries: enquiries.length,
+                    weightedPipeline: weighted
                 });
 
                 setRecentProjects(projects.slice(0, 3));
+                setRecentEnquiries(enquiries.slice(0, 3));
             } catch (err) {
                 console.error("Dashboard fetch error", err);
             } finally {
@@ -65,9 +76,9 @@ export default function DashboardPage() {
     const statCards = [
         { name: 'Active Projects', value: stats.activeProjects.toString(), icon: Briefcase, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
         { name: 'Total Partners', value: stats.totalPartners.toString(), icon: Users, iconColor: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-        { name: 'Revenue (MTD)', value: `₹${stats.revenueMTD.toLocaleString('en-IN')}`, icon: TrendingUp, iconColor: 'text-amber-400', bg: 'bg-amber-500/10' },
-        { name: 'Completed Tasks', value: stats.completedTasks.toString(), icon: CheckCircle2, iconColor: 'text-sky-400', bg: 'bg-sky-500/10' },
-        { name: 'Pending Tasks', value: stats.pendingTasks.toString(), icon: Loader2, iconColor: 'text-orange-400', bg: 'bg-orange-500/10' },
+        { name: 'Leads Pipeline', value: `₹${stats.weightedPipeline.toLocaleString('en-IN')}`, icon: TrendingUp, iconColor: 'text-amber-400', bg: 'bg-amber-500/10' },
+        { name: 'Total Enquiries', value: stats.totalEnquiries.toString(), icon: Users, iconColor: 'text-sky-400', bg: 'bg-sky-500/10' },
+        { name: 'Tasks Status', value: `${stats.completedTasks}/${stats.pendingTasks + stats.completedTasks}`, icon: CheckCircle2, iconColor: 'text-sky-400', bg: 'bg-sky-500/10' },
     ];
 
     const businessReserve = stats.revenueMTD * 0.1;
@@ -140,6 +151,43 @@ export default function DashboardPage() {
                                 ))
                             ) : (
                                 <div className="p-12 text-center text-neutral-500">No projects found. Start by creating a new one.</div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
+                            <h2 className="font-semibold">Recent Leads</h2>
+                            <Link href="/dashboard/enquiries" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium tracking-tight">View CRM</Link>
+                        </div>
+                        <div className="divide-y divide-neutral-800">
+                            {loading ? (
+                                <div className="p-12 text-center text-neutral-500">Loading leads...</div>
+                            ) : recentEnquiries.length > 0 ? (
+                                recentEnquiries.map((enquiry) => (
+                                    <div key={enquiry.id} className="p-6 flex items-center justify-between hover:bg-neutral-800/30 transition-colors group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center group-hover:bg-neutral-700 transition-colors">
+                                                <Users className="w-5 h-5 text-neutral-400" />
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-neutral-100">{enquiry.companyName || enquiry.clientName}</p>
+                                                <p className="text-xs text-neutral-500">{enquiry.servicesRequested?.[0] || 'Discovery'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-8">
+                                            <div className="text-right hidden sm:block">
+                                                <p className="text-sm font-medium text-neutral-200">₹{(enquiry.estimatedValue || 0).toLocaleString('en-IN')}</p>
+                                                <p className="text-[10px] text-neutral-500 text-right">{enquiry.probability || 0}% Prob.</p>
+                                            </div>
+                                            <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-neutral-800 text-neutral-400 group-hover:border-neutral-700 border border-transparent`}>
+                                                {enquiry.stage}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-12 text-center text-neutral-500">No recent leads found.</div>
                             )}
                         </div>
                     </div>

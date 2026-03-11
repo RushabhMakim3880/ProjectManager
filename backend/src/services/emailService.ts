@@ -43,7 +43,7 @@ async function getAllPartnerEmails(): Promise<string[]> {
         where: { user: { isActive: true } },
         include: { user: { select: { email: true } } },
     });
-    return partners.map(p => p.user.email).filter(Boolean);
+    return partners.map((p: any) => p.user.email).filter(Boolean);
 }
 
 // ─── Get Project Partner Emails ───
@@ -52,7 +52,7 @@ async function getProjectPartnerEmails(projectId: string): Promise<string[]> {
         where: { projectId },
         include: { partner: { include: { user: { select: { email: true } } } } },
     });
-    return contributions.map(c => c.partner.user.email).filter(Boolean);
+    return contributions.map((c: any) => c.partner.user.email).filter(Boolean);
 }
 
 // ─── Notification Functions ───

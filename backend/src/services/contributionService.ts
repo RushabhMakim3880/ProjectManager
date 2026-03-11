@@ -8,100 +8,66 @@ export const calculateProjectContributions = async (projectId: string) => {
 
     if (!project) throw new Error('Project not found');
 
-    const weights = typeof project.weights === 'string'
-        ? JSON.parse(project.weights) as Record<string, number>
-        : project.weights as Record<string, number>;
     const tasks = project.tasks;
 
-    // 1. Group tasks by category and calculate total effort per category
-    const categoryData: Record<string, { totalEffort: number, partnerEffort: Record<string, number> }> = {};
+    let totalDoneEffort = 0;
+    const partnerEffort: Record<string, number> = {};
 
-    // Fetch all partners for this project to map userId to partnerId
-    const projectPartners = await prisma.partner.findMany({
-        where: { contributions: { some: { projectId } } }
-    });
-    const userToPartnerMap: Record<string, string> = {};
-    projectPartners.forEach((p: any) => {
-        userToPartnerMap[p.userId] = p.id;
-    });
-
+    // 1. Calculate each partner's total done effort points
     tasks.forEach((task: any) => {
-        // Only count COMPLETED tasks toward contribution percentages
         if (task.status !== 'DONE') return;
 
-        if (!categoryData[task.category]) {
-            categoryData[task.category] = { totalEffort: 0, partnerEffort: {} };
-        }
-
-        const cat = categoryData[task.category]!;
-        cat.totalEffort += task.effortWeight;
-
-        // Credit goes to the COMPLETER (who actually did the work)
-        let creditPartnerId = task.assignedPartnerId;
-        if (task.completedById) {
-            // Map the User ID (completer) to a Partner ID
-            creditPartnerId = userToPartnerMap[task.completedById] || task.assignedPartnerId;
-        }
-
+        // Credit goes exclusively to the originally assigned partner
+        const creditPartnerId = task.assignedPartnerId;
+        
         if (creditPartnerId) {
-            if (!cat.partnerEffort[creditPartnerId]) {
-                cat.partnerEffort[creditPartnerId] = 0;
+            if (!partnerEffort[creditPartnerId]) {
+                partnerEffort[creditPartnerId] = 0;
             }
-            cat.partnerEffort[creditPartnerId]! += task.effortWeight;
+            partnerEffort[creditPartnerId] += task.effortWeight;
+            totalDoneEffort += task.effortWeight;
         }
     });
 
     // 2. Calculate contributions per partner
     const partnerContributions: Record<string, number> = {};
 
-    // Ensure all leads are in the list at minimum (0%)
-    const leadIds = [
-        project.projectLeadId,
-        project.techLeadId,
-        project.commsLeadId,
-        project.qaLeadId,
-        project.salesOwnerId
-    ].filter(id => id && id.trim() !== "");
+    // Ensure all assigned partners show up even with 0% (if they have tasks, but none done)
+    const allAssignedIds = Array.from(new Set(tasks.map((t: any) => t.assignedPartnerId).filter(Boolean))) as string[];
+    
+    // Also ensure people who already have contributions in the DB are present
+    const existingContributions = await prisma.contribution.findMany({ where: { projectId } });
+    const existingIds = existingContributions.map((c: any) => c.partnerId);
 
-    leadIds.forEach(id => {
-        if (!partnerContributions[id]) partnerContributions[id] = 0;
+    const allRelevantIds = Array.from(new Set([...allAssignedIds, ...existingIds]));
+    
+    allRelevantIds.forEach(id => {
+        partnerContributions[id] = 0;
     });
 
-    for (const category in categoryData) {
-        const data = categoryData[category]!;
-        const { totalEffort, partnerEffort } = data;
-        const categoryWeight = weights[category] || 0;
-
-        if (totalEffort > 0) {
-            for (const partnerId in partnerEffort) {
-                const effort = partnerEffort[partnerId]!;
-                const share = effort / totalEffort;
-                const contribution = share * categoryWeight;
-
-                partnerContributions[partnerId] = (partnerContributions[partnerId] || 0) + contribution;
-            }
+    if (totalDoneEffort > 0) {
+        for (const partnerId in partnerEffort) {
+            const effort = partnerEffort[partnerId] || 0;
+            const share = (effort / totalDoneEffort) * 100;
+            partnerContributions[partnerId] = Number(share.toFixed(2));
         }
-    }
-
-    // 2.1 Normalize total to 100%
-    const totalRaw = Object.values(partnerContributions).reduce((a, b) => a + b, 0);
-    if (totalRaw > 0) {
-        for (const pid in partnerContributions) {
-            partnerContributions[pid] = Number(((partnerContributions[pid]! / totalRaw) * 100).toFixed(2));
-        }
-    } else if (leadIds.length > 0) {
-        // If no effort yet, distribute equally among leads to maintain 100% total
-        const equalShare = Number((100 / leadIds.length).toFixed(2));
-        leadIds.forEach(id => {
+    } else if (allRelevantIds.length > 0) {
+        // If no effort yet, distribute equally across all active project participants
+        const equalShare = Number((100 / allRelevantIds.length).toFixed(2));
+        allRelevantIds.forEach(id => {
             partnerContributions[id] = equalShare;
         });
     }
 
-    // Final check to handle rounding errors and ensure exactly 100%
+    // 2.1 Final check to handle rounding errors and ensure exactly 100%
     const finalTotal = Object.values(partnerContributions).reduce((a, b) => a + b, 0);
     if (finalTotal > 0 && finalTotal !== 100) {
-        const firstId = Object.keys(partnerContributions)[0]!;
-        partnerContributions[firstId] = Number((partnerContributions[firstId]! + (100 - finalTotal)).toFixed(2));
+        // Give the rounding diff to the first partner who has > 0, or just the first partner
+        const activeIds = Object.keys(partnerContributions).filter(id => (partnerContributions[id] || 0) > 0);
+        const targetId = activeIds.length > 0 ? activeIds[0] : allRelevantIds[0];
+        if (targetId) {
+            partnerContributions[targetId] = Number(((partnerContributions[targetId] || 0) + (100 - finalTotal)).toFixed(2));
+        }
     }
 
     // 3. Update database

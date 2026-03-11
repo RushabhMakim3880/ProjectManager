@@ -131,14 +131,14 @@ export default function ProjectDetailsPage() {
     };
 
     const handleFinalize = async () => {
-        if (!confirm("Are you sure you want to finalize this engagement? This will lock the project and prevent further edits.")) return;
+        if (!confirm("Are you sure you want to close and finalize this project? This will calculate final payouts, deduct advances, and lock the project permanently.")) return;
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            await api.patch(`/projects/${id}/lock`);
+            await api.post(`/projects/${id}/finalize`);
             await fetchProject();
         } catch (error) {
-            console.error('Failed to lock project:', error);
+            console.error('Failed to finalize project:', error);
         } finally {
             setLoading(false);
         }
@@ -245,7 +245,7 @@ export default function ProjectDetailsPage() {
                             onClick={handleFinalize}
                             className="btn-primary flex items-center gap-2 px-8 shadow-lg shadow-indigo-500/20"
                         >
-                            <Lock className="w-4 h-4" /> Finalize Engagement
+                            <Lock className="w-4 h-4" /> Close & Finalize Project
                         </button>
                     )}
                 </div>

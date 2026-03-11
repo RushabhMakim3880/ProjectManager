@@ -1,25 +1,26 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus,
     Trash2,
-    UserPlus,
     CheckCircle2,
-    Clock,
-    AlertCircle,
     Layout,
     X,
     MessageSquare,
     Send,
-
     Loader2,
     User,
-    MoreVertical,
     Pencil,
-    Filter
+    Filter,
+    Upload,
+    FileSpreadsheet,
+    Download,
+    AlertTriangle,
+    CheckCheck
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import api from '@/lib/api';
 
 interface Task {
@@ -108,6 +109,7 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
         effortWeight: 1,
         assignedPartnerId: ''
     });
+    const [showImportModal, setShowImportModal] = useState(false);
 
     const filteredTasks = useMemo(() => {
         let res = tasks;
@@ -271,12 +273,20 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                         </h3>
                         <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-[0.2em] mt-1 ml-8">Scope Management & Resource Allocation</p>
                     </div>
-                    <button
-                        onClick={() => setIsCreating(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-                    >
-                        <Plus className="w-4 h-4" /> Initialize Task
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowImportModal(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-neutral-900 border border-neutral-700 text-neutral-300 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-neutral-800 hover:border-indigo-500/50 hover:text-indigo-400 transition-all active:scale-[0.98]"
+                        >
+                            <Upload className="w-4 h-4" /> Import CSV / Excel
+                        </button>
+                        <button
+                            onClick={() => setIsCreating(true)}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                        >
+                            <Plus className="w-4 h-4" /> Initialize Task
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
@@ -682,6 +692,387 @@ export default function TaskManager({ projectId, tasks, categories, onTaskUpdate
                     </AnimatePresence>
                 </div>
             </div>
+
+            {/* Batch Import Modal */}
+            <AnimatePresence>
+                {showImportModal && (
+                    <BatchImportModal
+                        projectId={projectId}
+                        categories={categories}
+                        partners={partners}
+                        onClose={() => setShowImportModal(false)}
+                        onImportDone={() => { setShowImportModal(false); onTaskUpdate(); }}
+                    />
+                )}
+            </AnimatePresence>
         </div>
+    );
+}
+
+// ─── Batch Import Modal ───────────────────────────────────────────────────────
+
+interface ParsedRow {
+    name: string;
+    category: string;
+    effortWeight: number;
+    assignedPartnerId: string | null;
+    _partnerName?: string;
+    _error?: string;
+}
+
+interface BatchImportModalProps {
+    projectId: string;
+    categories: string[];
+    partners: { id: string; user: { name: string } }[];
+    onClose: () => void;
+    onImportDone: () => void;
+}
+
+function BatchImportModal({ projectId, categories, partners, onClose, onImportDone }: BatchImportModalProps) {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [dragOver, setDragOver] = useState(false);
+    const [rows, setRows] = useState<ParsedRow[]>([]);
+    const [fileName, setFileName] = useState<string | null>(null);
+    const [importState, setImportState] = useState<'idle' | 'importing' | 'done'>('idle');
+    const [importProgress, setImportProgress] = useState(0);
+    const [importErrors, setImportErrors] = useState<string[]>([]);
+
+    const defaultCategory = categories[0] || 'General';
+
+    const normalizeHeader = (h: string) => h.toLowerCase().replace(/[^a-z]/g, '');
+
+    const parseRows = useCallback((raw: Record<string, string>[]) => {
+        return raw.map((r): ParsedRow => {
+            // Find columns case-insensitively
+            const get = (keys: string[]) => {
+                for (const k of Object.keys(r)) {
+                    if (keys.includes(normalizeHeader(k))) return r[k]?.toString().trim() || '';
+                }
+                return '';
+            };
+
+            const name = get(['name', 'task', 'taskname', 'title']);
+            const category = get(['category', 'type', 'classification']) || defaultCategory;
+            const effortRaw = get(['effortweight', 'effort', 'weight', 'points']);
+            const effortWeight = effortRaw ? (parseFloat(effortRaw) || 1) : 1;
+            const partnerName = get(['assignedpartner', 'partner', 'assignee', 'assigned']);
+
+            const matchedPartner = partnerName
+                ? partners.find(p => p.user.name.toLowerCase() === partnerName.toLowerCase())
+                : null;
+
+            return {
+                name,
+                category: categories.includes(category) ? category : defaultCategory,
+                effortWeight,
+                assignedPartnerId: matchedPartner?.id || null,
+                _partnerName: partnerName,
+                _error: !name ? 'Missing task name' : undefined,
+            };
+        }).filter(r => r.name || r._error); // drop empty rows
+    }, [categories, defaultCategory, partners]);
+
+    const processFile = useCallback((file: File) => {
+        setFileName(file.name);
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
+                setRows(parseRows(json));
+            } catch {
+                alert('Failed to parse file. Please use a valid CSV or Excel file.');
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    }, [parseRows]);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setDragOver(false);
+        const file = e.dataTransfer.files[0];
+        if (file) processFile(file);
+    }, [processFile]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) processFile(file);
+    };
+
+    const downloadTemplate = () => {
+        const ws = XLSX.utils.aoa_to_sheet([
+            ['name', 'category', 'effortWeight', 'assignedPartner'],
+            ['Example Task 1', categories[0] || 'Design', 2, ''],
+            ['Example Task 2', categories[1] || categories[0] || 'Development', 1, ''],
+        ]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Tasks');
+        XLSX.writeFile(wb, 'task_import_template.xlsx');
+    };
+
+    const handleImport = async () => {
+        const valid = rows.filter(r => !r._error);
+        if (valid.length === 0) return;
+
+        setImportState('importing');
+        setImportProgress(0);
+        const errors: string[] = [];
+
+        for (let i = 0; i < valid.length; i++) {
+            const row = valid[i];
+            try {
+                await api.post('/projects/tasks', {
+                    projectId,
+                    name: row.name,
+                    category: row.category,
+                    effortWeight: row.effortWeight,
+                    assignedPartnerId: row.assignedPartnerId,
+                });
+            } catch {
+                errors.push(`Row ${i + 1} ("${row.name}"): Failed to create`);
+            }
+            setImportProgress(Math.round(((i + 1) / valid.length) * 100));
+        }
+
+        setImportErrors(errors);
+        setImportState('done');
+    };
+
+    const validRows = rows.filter(r => !r._error);
+    const errorRows = rows.filter(r => r._error);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+        >
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                className="w-full max-w-3xl max-h-[90vh] bg-neutral-900 border border-neutral-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            >
+                {/* Header */}
+                <div className="p-6 border-b border-neutral-800 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-indigo-500/20 rounded-xl text-indigo-400">
+                            <FileSpreadsheet className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-black text-white uppercase tracking-tight">Batch Task Import</h3>
+                            <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">Upload CSV or Excel to create tasks in bulk</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={downloadTemplate}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-neutral-700 text-neutral-400 hover:text-emerald-400 hover:border-emerald-500/40 text-[10px] font-black uppercase tracking-widest transition-all"
+                        >
+                            <Download className="w-3.5 h-3.5" /> Download Template
+                        </button>
+                        <button onClick={onClose} className="p-2 hover:bg-neutral-800 rounded-xl text-neutral-500 transition-colors">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {/* Drop Zone */}
+                    {importState === 'idle' && (
+                        <div
+                            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                            onDragLeave={() => setDragOver(false)}
+                            onDrop={handleDrop}
+                            onClick={() => fileInputRef.current?.click()}
+                            className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all ${dragOver
+                                    ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]'
+                                    : 'border-neutral-700 hover:border-indigo-500/50 hover:bg-neutral-800/30'
+                                }`}
+                        >
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".csv,.xlsx,.xls"
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
+                            <div className={`p-4 rounded-2xl transition-all ${dragOver ? 'bg-indigo-500/20' : 'bg-neutral-800'}`}>
+                                <Upload className={`w-8 h-8 ${dragOver ? 'text-indigo-400' : 'text-neutral-500'}`} />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm font-bold text-neutral-300">
+                                    {fileName ? `📄 ${fileName}` : 'Drag & drop your file here'}
+                                </p>
+                                <p className="text-xs text-neutral-600 mt-1">Supports .csv, .xlsx, .xls • click to browse</p>
+                            </div>
+                            {fileName && rows.length === 0 && (
+                                <p className="text-xs text-amber-400">Parsing...</p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Column Format Guide */}
+                    {rows.length === 0 && importState === 'idle' && (
+                        <div className="rounded-2xl border border-neutral-800 bg-neutral-950/50 p-5">
+                            <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3">Expected Column Headers</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                {[
+                                    { col: 'name', req: true, desc: 'Task title' },
+                                    { col: 'category', req: true, desc: `One of: ${categories.slice(0, 2).join(', ')}...` },
+                                    { col: 'effortWeight', req: false, desc: 'Number (default: 1)' },
+                                    { col: 'assignedPartner', req: false, desc: 'Partner full name' },
+                                ].map(({ col, req, desc }) => (
+                                    <div key={col} className="bg-neutral-900 rounded-xl p-3 border border-neutral-800">
+                                        <p className="text-xs font-black text-white font-mono">{col}</p>
+                                        <p className="text-[10px] text-neutral-600 mt-1">{desc}</p>
+                                        {req && <span className="text-[9px] text-rose-400 font-bold uppercase">Required</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Preview Table */}
+                    {rows.length > 0 && importState === 'idle' && (
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-xs font-black text-neutral-400 uppercase tracking-widest">
+                                    Preview — <span className="text-white">{validRows.length} valid</span>
+                                    {errorRows.length > 0 && <span className="text-rose-400 ml-2">{errorRows.length} errors</span>}
+                                </p>
+                                <button
+                                    onClick={() => { setRows([]); setFileName(null); }}
+                                    className="text-[10px] font-bold text-neutral-600 hover:text-neutral-300 uppercase tracking-wider"
+                                >
+                                    Clear & re-upload
+                                </button>
+                            </div>
+
+                            <div className="rounded-2xl border border-neutral-800 overflow-hidden">
+                                {/* Table header */}
+                                <div className="grid grid-cols-12 gap-0 bg-neutral-950 px-4 py-2.5 text-[9px] font-black text-neutral-500 uppercase tracking-widest border-b border-neutral-800">
+                                    <div className="col-span-5">Task Name</div>
+                                    <div className="col-span-3">Category</div>
+                                    <div className="col-span-2 text-center">Effort</div>
+                                    <div className="col-span-2">Assignee</div>
+                                </div>
+                                <div className="divide-y divide-neutral-800/50 max-h-[300px] overflow-y-auto">
+                                    {rows.map((row, i) => (
+                                        <div
+                                            key={i}
+                                            className={`grid grid-cols-12 gap-0 px-4 py-3 text-xs ${row._error
+                                                    ? 'bg-rose-500/5 border-l-2 border-l-rose-500'
+                                                    : 'hover:bg-neutral-800/30'
+                                                }`}
+                                        >
+                                            <div className="col-span-5 font-bold text-white truncate pr-2">
+                                                {row._error
+                                                    ? <span className="flex items-center gap-1 text-rose-400"><AlertTriangle className="w-3 h-3" />{row._error}</span>
+                                                    : row.name
+                                                }
+                                            </div>
+                                            <div className="col-span-3 text-neutral-400 truncate pr-2">{row.category}</div>
+                                            <div className="col-span-2 text-center text-neutral-500">{row.effortWeight}</div>
+                                            <div className="col-span-2 text-neutral-400 truncate">
+                                                {row.assignedPartnerId
+                                                    ? <span className="text-indigo-400">{row._partnerName}</span>
+                                                    : row._partnerName
+                                                        ? <span className="text-amber-400" title="Partner not found">{row._partnerName} ?</span>
+                                                        : <span className="text-neutral-700">—</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Import Progress */}
+                    {importState === 'importing' && (
+                        <div className="space-y-6 py-4">
+                            <div className="flex items-center gap-4">
+                                <Loader2 className="w-5 h-5 animate-spin text-indigo-400 shrink-0" />
+                                <div className="flex-1">
+                                    <p className="text-sm font-bold text-white mb-2">Importing {validRows.length} tasks...</p>
+                                    <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
+                                        <motion.div
+                                            className="h-full bg-indigo-500 rounded-full"
+                                            animate={{ width: `${importProgress}%` }}
+                                            transition={{ duration: 0.3 }}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-neutral-500 mt-1.5">{importProgress}% complete</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Done State */}
+                    {importState === 'done' && (
+                        <div className="space-y-4 py-4">
+                            <div className="flex items-center gap-4 p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                                <div className="p-3 rounded-xl bg-emerald-500/10">
+                                    <CheckCheck className="w-6 h-6 text-emerald-400" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-white">
+                                        {validRows.length - importErrors.length} of {validRows.length} tasks imported successfully
+                                    </p>
+                                    {importErrors.length === 0 && (
+                                        <p className="text-xs text-neutral-500 mt-0.5">All tasks have been created. The task list will refresh.</p>
+                                    )}
+                                </div>
+                            </div>
+                            {importErrors.length > 0 && (
+                                <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/20 space-y-1">
+                                    <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2">Import Errors</p>
+                                    {importErrors.map((e, i) => <p key={i} className="text-xs text-rose-300">{e}</p>)}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 border-t border-neutral-800 flex items-center justify-between shrink-0">
+                    <p className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest">
+                        {rows.length > 0 && importState === 'idle' && `${validRows.length} tasks ready to import`}
+                    </p>
+                    <div className="flex items-center gap-3">
+                        {importState !== 'done' && (
+                            <button
+                                onClick={onClose}
+                                className="px-5 py-2.5 rounded-xl bg-neutral-800 border border-neutral-700 text-neutral-400 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                        {importState === 'idle' && validRows.length > 0 && (
+                            <button
+                                onClick={handleImport}
+                                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] flex items-center gap-2"
+                            >
+                                <Upload className="w-3.5 h-3.5" /> Import {validRows.length} Task{validRows.length !== 1 ? 's' : ''}
+                            </button>
+                        )}
+                        {importState === 'done' && (
+                            <button
+                                onClick={onImportDone}
+                                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                            >
+                                <CheckCheck className="w-3.5 h-3.5" /> Done
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </motion.div>
+        </motion.div>
     );
 }

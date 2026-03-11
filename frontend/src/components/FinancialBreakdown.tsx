@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { DollarSign, Percent, PieChart, Shield, Heart, Award, CheckCircle2, Clock, TrendingDown, Scale, Wallet, RefreshCw } from "lucide-react";
+import { DollarSign, Percent, PieChart, Shield, Heart, Award, CheckCircle2, Clock, TrendingDown, Scale, Wallet, RefreshCw, HandCoins, X } from "lucide-react";
 import { motion } from "framer-motion";
+import api from '@/lib/api';
 
 interface FinancialBreakdownProps {
     project: any;
@@ -54,18 +55,38 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
     const handleRecalculate = async () => {
         setIsRecalculating(true);
         try {
-            const token = localStorage.getItem('token');
-            await fetch(`http://localhost:5000/api/projects/${project.id}/recalculate`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            await api.post(`/projects/${project.id}/recalculate`);
             window.location.reload();
         } catch (error) {
             console.error('Failed to recalculate:', error);
         } finally {
             setIsRecalculating(false);
+        }
+    };
+
+    const [advanceModal, setAdvanceModal] = useState<{isOpen: boolean, partnerId: string, partnerName: string} | null>(null);
+    const [advanceForm, setAdvanceForm] = useState({ amount: '', method: 'UPI', notes: '' });
+    const [isSubmittingAdvance, setIsSubmittingAdvance] = useState(false);
+
+    const handleLogAdvance = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!advanceModal || !advanceForm.amount) return;
+        setIsSubmittingAdvance(true);
+        try {
+            await api.post(`/projects/${project.id}/advances`, {
+                partnerId: advanceModal.partnerId,
+                amount: Number(advanceForm.amount),
+                method: advanceForm.method,
+                notes: advanceForm.notes
+            });
+            window.location.reload();
+        } catch (error) {
+            console.error('Failed to log advance:', error);
+            alert("Error logging advance");
+        } finally {
+            setIsSubmittingAdvance(false);
+            setAdvanceModal(null);
+            setAdvanceForm({ amount: '', method: 'UPI', notes: '' });
         }
     };
 
@@ -243,7 +264,10 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                                 <th className="p-5 text-[10px] font-black text-neutral-500 uppercase tracking-widest text-center">Score</th>
                                 <th className="p-5 text-[10px] font-black text-neutral-500 uppercase tracking-widest text-right">Base Share</th>
                                 <th className="p-5 text-[10px] font-black text-neutral-500 uppercase tracking-widest text-right">Performance</th>
-                                <th className="p-5 text-[10px] font-black text-neutral-500 uppercase tracking-widest text-right">Total Realized</th>
+                                <th className="p-5 text-[10px] font-black text-neutral-500 uppercase tracking-widest text-right">Gross Total</th>
+                                <th className="p-5 text-[10px] font-black text-rose-500 uppercase tracking-widest text-right">Advances</th>
+                                <th className="p-5 text-[10px] font-black text-emerald-500 uppercase tracking-widest text-right">Net Payable</th>
+                                <th className="p-5 text-[10px] font-black text-neutral-500 uppercase tracking-widest text-center">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-800/50">
@@ -269,6 +293,13 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                                     const performanceEarning = Number(((performanceShare / 100) * performancePoolTotal).toFixed(2));
                                     const baseEarning = Number((basePoolTotal / (totalPartnerCount || 1)).toFixed(2));
                                     const totalEarning = Number((performanceEarning + baseEarning).toFixed(2));
+                                    
+                                    const advancesTaken = (project.advances || [])
+                                        .filter((a: any) => a.partnerId === c.partnerId)
+                                        .reduce((sum: number, a: any) => sum + a.amount, 0);
+
+                                    const netPayable = Math.max(0, totalEarning - advancesTaken);
+                                    
                                     const didNoWork = performanceShare === 0;
 
                                     return (
@@ -302,9 +333,29 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                                             </td>
                                             <td className="p-5 text-right">
                                                 <div className="flex flex-col items-end">
-                                                    <span className={`text-base font-black tracking-tighter ${didNoWork ? 'text-neutral-400' : 'text-white'}`}>₹{totalEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                                                    <span className="text-[9px] text-neutral-600 font-bold uppercase tracking-tighter bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 mt-1">Realized</span>
+                                                    <span className={`text-sm font-black tracking-tighter ${didNoWork ? 'text-neutral-500' : 'text-neutral-300'}`}>₹{totalEarning.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                                                 </div>
+                                            </td>
+                                            <td className="p-5 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`text-sm font-black tracking-tighter text-rose-400`}>- ₹{advancesTaken.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-5 text-right bg-emerald-500/5">
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`text-base font-black tracking-tighter ${didNoWork && netPayable === 0 ? 'text-emerald-500/50' : 'text-emerald-400'}`}>₹{netPayable.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-5 text-center">
+                                                {project.status !== 'COMPLETED' && !project.isLocked && (
+                                                    <button 
+                                                        onClick={() => setAdvanceModal({ isOpen: true, partnerId: c.partnerId, partnerName: c.partner?.user?.name || 'Unknown' })}
+                                                        className="p-2 rounded-xl bg-neutral-800 hover:bg-indigo-500/20 text-neutral-400 hover:text-indigo-400 border border-neutral-700 hover:border-indigo-500/30 transition-all mx-auto"
+                                                        title="Log Advance Payment"
+                                                    >
+                                                        <HandCoins className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     );
@@ -326,6 +377,76 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                     <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500 group-hover:text-emerald-400">Zero Error Distribution</span>
                 </div>
             </div>
+
+            {/* Advance Payout Modal */}
+            {advanceModal && advanceModal.isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-neutral-800 flex items-center justify-between bg-neutral-950/50">
+                            <div>
+                                <h3 className="text-lg font-black text-white italic tracking-tight">Record Advance</h3>
+                                <p className="text-xs text-indigo-400 font-bold uppercase mt-1">For {advanceModal.partnerName}</p>
+                            </div>
+                            <button 
+                                onClick={() => setAdvanceModal(null)}
+                                className="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleLogAdvance} className="p-6 space-y-5">
+                            <div>
+                                <label className="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2">Advance Amount (₹)</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <span className="text-neutral-500 font-bold">₹</span>
+                                    </div>
+                                    <input 
+                                        type="number" 
+                                        min="1"
+                                        required
+                                        value={advanceForm.amount}
+                                        onChange={(e) => setAdvanceForm({...advanceForm, amount: e.target.value})}
+                                        className="input-field pl-10 text-lg font-bold"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2">Transfer Mode</label>
+                                    <select 
+                                        value={advanceForm.method}
+                                        onChange={(e) => setAdvanceForm({...advanceForm, method: e.target.value})}
+                                        className="input-field py-3 text-sm font-semibold"
+                                    >
+                                        <option value="UPI">UPI Transfer</option>
+                                        <option value="BANK">Bank Transfer</option>
+                                        <option value="CASH">Cash</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2">Notes</label>
+                                    <input 
+                                        type="text" 
+                                        value={advanceForm.notes}
+                                        onChange={(e) => setAdvanceForm({...advanceForm, notes: e.target.value})}
+                                        className="input-field py-3 text-sm"
+                                        placeholder="Optional remark"
+                                    />
+                                </div>
+                            </div>
+                            <button 
+                                type="submit" 
+                                disabled={isSubmittingAdvance || !advanceForm.amount}
+                                className="w-full btn-primary py-4 text-sm disabled:opacity-50"
+                            >
+                                {isSubmittingAdvance ? 'Recording...' : 'Record Advance Deduction'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

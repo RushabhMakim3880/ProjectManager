@@ -12,7 +12,8 @@ import {
     PieChart,
     LogOut,
     ShieldAlert,
-    ShieldCheck
+    ShieldCheck,
+    Inbox
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -23,6 +24,7 @@ function cn(...inputs: ClassValue[]) {
 
 const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+    { name: 'Enquiries', icon: Inbox, href: '/dashboard/enquiries' },
     { name: 'Projects', icon: Briefcase, href: '/dashboard/projects' },
     { name: 'Partners', icon: Users, href: '/dashboard/partners' },
     { name: 'Financials', icon: PieChart, href: '/dashboard/financials' },
