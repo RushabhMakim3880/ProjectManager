@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DollarSign, Percent, PieChart, Shield, Heart, Award, CheckCircle2, Clock, TrendingDown, Scale, Wallet, RefreshCw, HandCoins, X } from "lucide-react";
+import { DollarSign, Percent, PieChart, Shield, Heart, Award, CheckCircle2, Clock, TrendingDown, Scale, Wallet, RefreshCw, HandCoins, X, Edit2, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import api from '@/lib/api';
 
@@ -65,29 +65,64 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
     };
 
     const [advanceModal, setAdvanceModal] = useState<{isOpen: boolean, partnerId: string, partnerName: string} | null>(null);
-    const [advanceForm, setAdvanceForm] = useState({ amount: '', method: 'UPI', notes: '' });
+    const [advanceForm, setAdvanceForm] = useState({ id: '', amount: '', method: 'UPI', notes: '' });
     const [isSubmittingAdvance, setIsSubmittingAdvance] = useState(false);
+    const [isDeletingAdvance, setIsDeletingAdvance] = useState<string | null>(null);
+
+    const partnerAdvances = advanceModal ? (project.advances?.filter((a: any) => a.partnerId === advanceModal.partnerId) || []) : [];
 
     const handleLogAdvance = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!advanceModal || !advanceForm.amount) return;
         setIsSubmittingAdvance(true);
         try {
-            await api.post(`/projects/${project.id}/advances`, {
-                partnerId: advanceModal.partnerId,
-                amount: Number(advanceForm.amount),
-                method: advanceForm.method,
-                notes: advanceForm.notes
-            });
+            if (advanceForm.id) {
+                await api.put(`/projects/${project.id}/advances/${advanceForm.id}`, {
+                    amount: Number(advanceForm.amount),
+                    method: advanceForm.method,
+                    notes: advanceForm.notes
+                });
+            } else {
+                await api.post(`/projects/${project.id}/advances`, {
+                    partnerId: advanceModal.partnerId,
+                    amount: Number(advanceForm.amount),
+                    method: advanceForm.method,
+                    notes: advanceForm.notes
+                });
+            }
             window.location.reload();
         } catch (error) {
             console.error('Failed to log advance:', error);
             alert("Error logging advance");
         } finally {
             setIsSubmittingAdvance(false);
-            setAdvanceModal(null);
-            setAdvanceForm({ amount: '', method: 'UPI', notes: '' });
         }
+    };
+
+    const handleDeleteAdvance = async (advanceId: string) => {
+        if (!confirm("Are you sure you want to delete this advance payment?")) return;
+        setIsDeletingAdvance(advanceId);
+        try {
+            await api.delete(`/projects/${project.id}/advances/${advanceId}`);
+            window.location.reload();
+        } catch (error) {
+            console.error('Failed to delete advance:', error);
+            alert("Error deleting advance");
+            setIsDeletingAdvance(null);
+        }
+    };
+
+    const handleEditAdvanceClick = (advance: any) => {
+        setAdvanceForm({
+            id: advance.id,
+            amount: advance.amount.toString(),
+            method: advance.method,
+            notes: advance.notes || ''
+        });
+    };
+
+    const handleCancelEdit = () => {
+        setAdvanceForm({ id: '', amount: '', method: 'UPI', notes: '' });
     };
 
     return (
@@ -384,11 +419,14 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                     <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
                         <div className="p-6 border-b border-neutral-800 flex items-center justify-between bg-neutral-950/50">
                             <div>
-                                <h3 className="text-lg font-black text-white italic tracking-tight">Record Advance</h3>
+                                <h3 className="text-lg font-black text-white italic tracking-tight">Manage Advances</h3>
                                 <p className="text-xs text-indigo-400 font-bold uppercase mt-1">For {advanceModal.partnerName}</p>
                             </div>
                             <button 
-                                onClick={() => setAdvanceModal(null)}
+                                onClick={() => {
+                                    setAdvanceModal(null);
+                                    setAdvanceForm({ id: '', amount: '', method: 'UPI', notes: '' });
+                                }}
                                 className="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white transition-colors"
                             >
                                 <X className="w-5 h-5" />
@@ -436,14 +474,63 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                                     />
                                 </div>
                             </div>
-                            <button 
-                                type="submit" 
-                                disabled={isSubmittingAdvance || !advanceForm.amount}
-                                className="w-full btn-primary py-4 text-sm disabled:opacity-50"
-                            >
-                                {isSubmittingAdvance ? 'Recording...' : 'Record Advance Deduction'}
-                            </button>
+                            <div className="flex gap-3">
+                                <button 
+                                    type="submit" 
+                                    disabled={isSubmittingAdvance || !advanceForm.amount}
+                                    className="flex-1 btn-primary py-4 text-sm disabled:opacity-50"
+                                >
+                                    {isSubmittingAdvance ? 'Saving...' : (advanceForm.id ? 'Save Changes' : 'Record Advance Deduction')}
+                                </button>
+                                {advanceForm.id && (
+                                    <button 
+                                        type="button" 
+                                        onClick={handleCancelEdit}
+                                        className="px-6 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-sm transition-all border border-neutral-700 hover:border-neutral-600"
+                                    >
+                                        Cancel
+                                    </button>
+                                )}
+                            </div>
                         </form>
+                        
+                        {partnerAdvances.length > 0 && !advanceForm.id && (
+                            <div className="p-6 border-t border-neutral-800 bg-neutral-950/30">
+                                <h4 className="text-xs font-black text-neutral-500 uppercase tracking-widest mb-4">Past Advances</h4>
+                                <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    {partnerAdvances.map((adv: any) => (
+                                        <div key={adv.id} className="flex items-center justify-between p-3 rounded-xl bg-neutral-900 border border-neutral-800">
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-black text-white">₹{adv.amount.toLocaleString()}</span>
+                                                    <span className="text-[10px] font-bold text-neutral-500 px-2 py-0.5 rounded border border-neutral-800">{adv.method}</span>
+                                                </div>
+                                                <div className="text-xs text-neutral-500 font-medium mt-1">
+                                                    {new Date(adv.createdAt).toLocaleDateString()} {adv.notes && `• ${adv.notes}`}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleEditAdvanceClick(adv)}
+                                                    className="p-1.5 rounded-lg text-neutral-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                                                    title="Edit Advance"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteAdvance(adv.id)}
+                                                    disabled={isDeletingAdvance === adv.id}
+                                                    className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                                                    title="Delete Advance"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

@@ -123,6 +123,56 @@ export const logAdvancePayout = async (req: Request, res: Response) => {
     }
 };
 
+export const updateAdvancePayout = async (req: Request, res: Response) => {
+    const { projectId, advanceId } = req.params;
+    const { amount, method, notes } = req.body;
+
+    if (!amount || !method) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const project = await prisma.project.findUnique({ where: { id: projectId } });
+        if (!project || project.status === 'COMPLETED' || project.isLocked) {
+             return res.status(400).json({ error: 'Cannot modify advances of a finalized project' });
+        }
+
+        const advance = await prisma.advancePayout.update({
+            where: { id: advanceId },
+            data: {
+                amount: Number(amount),
+                method,
+                notes
+            }
+        });
+
+        res.json({ message: 'Advance payment updated', advance });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server error updating advance' });
+    }
+};
+
+export const deleteAdvancePayout = async (req: Request, res: Response) => {
+    const { projectId, advanceId } = req.params;
+
+    try {
+        const project = await prisma.project.findUnique({ where: { id: projectId } });
+        if (!project || project.status === 'COMPLETED' || project.isLocked) {
+             return res.status(400).json({ error: 'Cannot delete advances of a finalized project' });
+        }
+
+        await prisma.advancePayout.delete({
+            where: { id: advanceId }
+        });
+
+        res.json({ message: 'Advance payment deleted' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server error deleting advance' });
+    }
+};
+
 export const getAdvances = async (req: Request, res: Response) => {
     const { projectId } = req.params;
     try {
