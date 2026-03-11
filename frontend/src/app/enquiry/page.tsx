@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Send, CheckCircle2, Loader2, Briefcase, ChevronRight, ChevronLeft, User, LayoutDashboard, FileText } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Send, CheckCircle2, Loader2, Briefcase, ChevronRight, ChevronLeft, User, LayoutDashboard, FileText, ArrowLeft } from 'lucide-react';
 import { PROJECT_SERVICES } from '@/lib/project-types';
 
 const STEPS = [
@@ -12,6 +13,7 @@ const STEPS = [
 ];
 
 export default function PublicEnquiryForm() {
+    const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState({
         clientName: '',
@@ -105,8 +107,17 @@ export default function PublicEnquiryForm() {
     }
 
     return (
-        <div className="min-h-screen bg-black flex flex-col py-12 px-4 sm:px-6 lg:px-8 font-sans">
-            <div className="max-w-4xl mx-auto w-full">
+        <div className="min-h-screen bg-black flex flex-col py-12 px-4 sm:px-6 lg:px-8 font-sans relative">
+            {/* Back Button */}
+            <button
+                onClick={() => router.back()}
+                className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors z-50 shadow-lg"
+            >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="font-medium text-sm">Go Back</span>
+            </button>
+
+            <div className="max-w-4xl mx-auto w-full pt-8">
 
                 {/* Header Section */}
                 <div className="text-center mb-12">
