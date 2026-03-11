@@ -122,6 +122,7 @@ export const getProjects = async (req: Request, res: Response, next: NextFunctio
         const projects = await prisma.project.findMany({
             include: {
                 _count: { select: { tasks: true } },
+                advances: true,
                 contributions: {
                     include: { partner: { include: { user: true } } }
                 }
@@ -150,6 +151,7 @@ export const getProjectById = async (req: Request, res: Response, next: NextFunc
                     take: 1
                 },
                 transactions: true,
+                advances: true,
                 milestones: true,
             },
         });
