@@ -207,6 +207,7 @@ app.post('/api/leads/generate-email', async (req: Request, res: Response) => {
         const companyName = lead?.name || 'Your Company';
         const website = lead?.website || '';
         const industry = lead?.industry || lead?.niche || 'your industry';
+        const senderData = req.body.senderData || { name: 'Executive Team', company: 'Our Company' };
 
         const apiKey = process.env.GOOGLE_GENAI_API_KEY;
 
@@ -221,7 +222,10 @@ Client details:
 - Company: ${companyName}
 - Website: ${website}
 - Industry: ${industry}
-- Sender: IT Cyber Team
+
+Sender details:
+- Name: ${senderData.name}
+- Company: ${senderData.company}
 
 Replace all {{placeholders}} with appropriate values. Return:
 {"subject":"personalized subject","body":"personalized full email body"}`;

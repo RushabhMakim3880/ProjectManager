@@ -30,21 +30,21 @@ export default function LeadHunterPage() {
     const [saving, setSaving] = useState<string | null>(null);
     const [query, setQuery] = useState(() => {
         if (typeof window !== 'undefined') {
-            const saved = sessionStorage.getItem('lh_query');
+            const saved = localStorage.getItem('lh_query');
             return saved ? JSON.parse(saved) : { niche: '', location: '' };
         }
         return { niche: '', location: '' };
     });
     const [leads, setLeads] = useState<any[]>(() => {
         if (typeof window !== 'undefined') {
-            const saved = sessionStorage.getItem('lh_leads');
+            const saved = localStorage.getItem('lh_leads');
             return saved ? JSON.parse(saved) : [];
         }
         return [];
     });
     const [existingStatus, setExistingStatus] = useState<Record<string, { exists: boolean, status?: string }>>({});
     const [hasSearched, setHasSearched] = useState(() => {
-        if (typeof window !== 'undefined') return !!sessionStorage.getItem('lh_leads');
+        if (typeof window !== 'undefined') return !!localStorage.getItem('lh_leads');
         return false;
     });
 
@@ -55,13 +55,13 @@ export default function LeadHunterPage() {
         setSearching(true);
         setHasSearched(true);
         setLeads([]);
-        sessionStorage.removeItem('lh_leads');
+        localStorage.removeItem('lh_leads');
         try {
             const response = await api.post('/leads/search', query);
             const discoveredLeads = response.data;
             setLeads(discoveredLeads);
-            sessionStorage.setItem('lh_leads', JSON.stringify(discoveredLeads));
-            sessionStorage.setItem('lh_query', JSON.stringify(query));
+            localStorage.setItem('lh_leads', JSON.stringify(discoveredLeads));
+            localStorage.setItem('lh_query', JSON.stringify(query));
             
             // Check duplicates (non-blocking)
             try {
@@ -71,8 +71,8 @@ export default function LeadHunterPage() {
                     const statusMap: Record<string, any> = {};
                     checkRes.data.forEach((item: any) => { statusMap[item.website] = item; });
 
-                    // Also check sessionStorage
-                    const savedStr = sessionStorage.getItem('saved_leads');
+                    // Also check localStorage
+                    const savedStr = localStorage.getItem('saved_leads');
                     if (savedStr) {
                         const savedLeads = JSON.parse(savedStr);
                         savedLeads.forEach((l: any) => {
@@ -100,13 +100,13 @@ export default function LeadHunterPage() {
         try {
             await api.post('/leads/save', lead);
             
-            // Fallback for Vercel: save to sessionStorage
-            const savedStr = sessionStorage.getItem('saved_leads');
+            // Fallback for Vercel: save to localStorage
+            const savedStr = localStorage.getItem('saved_leads');
             const savedLeads = savedStr ? JSON.parse(savedStr) : [];
             const newLead = { ...lead, id: `local-${Date.now()}`, status: 'DISCOVERED', createdAt: new Date().toISOString() };
             if (!savedLeads.find((l: any) => l.website === lead.website)) {
                 savedLeads.push(newLead);
-                sessionStorage.setItem('saved_leads', JSON.stringify(savedLeads));
+                localStorage.setItem('saved_leads', JSON.stringify(savedLeads));
             }
 
             setExistingStatus(prev => ({
@@ -126,17 +126,17 @@ export default function LeadHunterPage() {
         try {
             await api.post('/leads/import', lead);
 
-            // Fallback for Vercel: save to sessionStorage
-            const savedStr = sessionStorage.getItem('saved_leads');
+            // Fallback for Vercel: save to localStorage
+            const savedStr = localStorage.getItem('saved_leads');
             const savedLeads = savedStr ? JSON.parse(savedStr) : [];
             const newLead = { ...lead, id: `local-${Date.now()}`, status: 'CONVERTED', createdAt: new Date().toISOString() };
             if (!savedLeads.find((l: any) => l.website === lead.website)) {
                 savedLeads.push(newLead);
-                sessionStorage.setItem('saved_leads', JSON.stringify(savedLeads));
+                localStorage.setItem('saved_leads', JSON.stringify(savedLeads));
             } else {
                 const target = savedLeads.find((l: any) => l.website === lead.website);
                 target.status = 'CONVERTED';
-                sessionStorage.setItem('saved_leads', JSON.stringify(savedLeads));
+                localStorage.setItem('saved_leads', JSON.stringify(savedLeads));
             }
 
             toast.success(`${lead.name} successfully integrated into CRM.`);

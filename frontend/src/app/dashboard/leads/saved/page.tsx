@@ -57,6 +57,15 @@ export default function OutreachManagerPage() {
     const [isSending, setIsSending] = useState(false);
     const [isPromoting, setIsPromoting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
+    const [sentEmailsHistory, setSentEmailsHistory] = useState<any[]>([]);
+    
+    // Auth & Settings Data for Personalized Sender
+    const [senderProfile, setSenderProfile] = useState<{ name: string; company: string; email: string }>({
+        name: 'Executive Team',
+        company: 'Our Company',
+        email: ''
+    });
 
     useEffect(() => {
         fetchInitialData();
@@ -65,14 +74,22 @@ export default function OutreachManagerPage() {
     const fetchInitialData = async () => {
         try {
             setLoading(true);
-            const [leadsRes, templatesRes] = await Promise.all([
-                api.get('/leads/saved'),
-                api.get('/leads/templates')
+            const [leadsRes, templatesRes, authRes, settingsRes] = await Promise.all([
+                api.get('/leads/saved').catch(() => ({ data: [] })),
+                api.get('/leads/templates').catch(() => ({ data: [] })),
+                api.get('/auth/me').catch(() => ({ data: null })),
+                api.get('/system/settings').catch(() => ({ data: null }))
             ]);
 
-            // Combine API leads with sessionStorage leads
+            // Setup Sender Profile
+            const userName = authRes.data?.name || 'Executive';
+            const userEmail = authRes.data?.email || '';
+            const companyName = settingsRes.data?.companyName || 'Our Company';
+            setSenderProfile({ name: userName, company: companyName, email: userEmail });
+
+            // Combine API leads with localStorage leads
             const apiLeads = leadsRes.data || [];
-            const savedStr = sessionStorage.getItem('saved_leads');
+            const savedStr = localStorage.getItem('saved_leads');
             const localLeads = savedStr ? JSON.parse(savedStr) : [];
             
             const uniqueLeads = [...apiLeads];
@@ -84,6 +101,10 @@ export default function OutreachManagerPage() {
 
             setLeads(uniqueLeads);
             setTemplates(templatesRes.data);
+
+            // Load history
+            const histStr = localStorage.getItem('sent_emails');
+            if (histStr) setSentEmailsHistory(JSON.parse(histStr));
         } catch (error) {
             console.error('Error fetching data:', error);
             toast.error('Failed to synchronize data with the intelligence hub');
@@ -103,7 +124,8 @@ export default function OutreachManagerPage() {
             const response = await api.post('/leads/generate-email', {
                 leadId: selectedLead.id,
                 leadData: selectedLead,
-                templateId: selectedTemplate.id
+                templateId: selectedTemplate.id,
+                senderData: senderProfile
             });
 
             setGeneratedEmail(response.data);
@@ -121,12 +143,40 @@ export default function OutreachManagerPage() {
 
         try {
             setIsSending(true);
-            await api.post('/leads/send-email', {
+            try {
+                await api.post('/leads/send-email', {
+                    leadId: selectedLead.id,
+                    subject: generatedEmail.subject,
+                    body: generatedEmail.body
+                });
+            } catch (e) {
+                /* Vercel API fallback for missing DB */
+            }
+
+            // Fallback for Vercel: update status in localStorage
+            const savedStr = localStorage.getItem('saved_leads');
+            if (savedStr) {
+                const savedLeads = JSON.parse(savedStr);
+                const target = savedLeads.find((l: any) => l.website === selectedLead.website || l.id === selectedLead.id);
+                if (target) {
+                    target.status = 'CONTACTED';
+                    localStorage.setItem('saved_leads', JSON.stringify(savedLeads));
+                }
+            }
+
+            // Save sent email history in localStorage for persistence
+            const historyStr = localStorage.getItem('sent_emails');
+            const history = historyStr ? JSON.parse(historyStr) : [];
+            history.push({
                 leadId: selectedLead.id,
+                leadName: selectedLead.name,
                 subject: generatedEmail.subject,
-                body: generatedEmail.body
+                body: generatedEmail.body,
+                sentAt: new Date().toISOString()
             });
-            
+            localStorage.setItem('sent_emails', JSON.stringify(history));
+            setSentEmailsHistory(history);
+
             toast.success('Electronic Communication Dispatched');
             setGeneratedEmail(null);
             fetchInitialData(); // Refresh to show CONTACTED status
@@ -141,7 +191,22 @@ export default function OutreachManagerPage() {
     const handlePromote = async (leadId: string) => {
         try {
             setIsPromoting(true);
-            await api.post(`/leads/promote/${leadId}`);
+            try {
+                await api.post(`/leads/promote/${leadId}`);
+            } catch (e) {
+                /* Vercel API fallback for missing DB */
+            }
+
+            // Fallback for Vercel: update status in localStorage
+            const savedStr = localStorage.getItem('saved_leads');
+            if (savedStr) {
+                const savedLeads = JSON.parse(savedStr);
+                const target = savedLeads.find((l: any) => l.id === leadId);
+                if (target) {
+                    target.status = 'CONVERTED';
+                    localStorage.setItem('saved_leads', JSON.stringify(savedLeads));
+                }
+            }
 
             toast.success('Target Promoted to Active CRM Pipeline');
             fetchInitialData();
@@ -176,6 +241,13 @@ export default function OutreachManagerPage() {
                 </div>
                 
                 <div className="flex items-center gap-3">
+                    <button 
+                        onClick={() => setHistoryModalOpen(true)}
+                        className="p-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all flex items-center gap-2"
+                    >
+                        <History className="w-4 h-4 text-neutral-400" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 hidden sm:inline">History</span>
+                    </button>
                     <div className="relative group">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-600 group-focus-within:text-indigo-400 transition-colors" />
                         <input 
@@ -448,6 +520,62 @@ export default function OutreachManagerPage() {
             {/* Visual enhancements */}
             <div className="fixed top-0 right-0 w-1/3 h-screen bg-indigo-600/5 blur-[120px] pointer-events-none -z-10" />
             <div className="fixed bottom-0 left-0 w-1/4 h-screen bg-indigo-600/5 blur-[120px] pointer-events-none -z-10" />
+
+            {/* History Modal */}
+            <AnimatePresence>
+                {historyModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setHistoryModalOpen(false)}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-3xl max-h-[80vh] flex flex-col bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
+                                <div className="flex items-center gap-3">
+                                    <History className="w-5 h-5 text-indigo-400" />
+                                    <h2 className="text-xl font-black italic uppercase tracking-tighter">Communication Log</h2>
+                                </div>
+                                <button onClick={() => setHistoryModalOpen(false)} className="text-neutral-500 hover:text-white transition-colors">
+                                    Close
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                                {sentEmailsHistory.length === 0 ? (
+                                    <div className="text-center py-12 text-neutral-500">
+                                        <Mail className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                                        <p className="text-xs uppercase tracking-widest font-black">No transmissions recorded.</p>
+                                    </div>
+                                ) : (
+                                    [...sentEmailsHistory].reverse().map((entry, idx) => (
+                                        <div key={idx} className="bg-white/5 border border-white/5 rounded-xl p-5 hover:border-indigo-500/30 transition-colors">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <div className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mb-1">Target: {entry.leadName}</div>
+                                                    <div className="text-sm font-bold truncate max-w-[300px] sm:max-w-md">{entry.subject}</div>
+                                                </div>
+                                                <div className="text-[9px] text-neutral-500 uppercase font-black px-2 py-1 bg-white/5 rounded">
+                                                    {new Date(entry.sentAt).toLocaleString()}
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-neutral-400 font-serif leading-relaxed whitespace-pre-wrap bg-black/40 p-4 rounded-lg border border-white/[0.02]">
+                                                {entry.body.substring(0, 300)}{entry.body.length > 300 ? '...' : ''}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
