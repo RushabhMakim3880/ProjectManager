@@ -28,10 +28,25 @@ export default function LeadHunterPage() {
     const [searching, setSearching] = useState(false);
     const [importing, setImporting] = useState<string | null>(null);
     const [saving, setSaving] = useState<string | null>(null);
-    const [query, setQuery] = useState({ niche: '', location: '' });
-    const [leads, setLeads] = useState<any[]>([]);
+    const [query, setQuery] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem('lh_query');
+            return saved ? JSON.parse(saved) : { niche: '', location: '' };
+        }
+        return { niche: '', location: '' };
+    });
+    const [leads, setLeads] = useState<any[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem('lh_leads');
+            return saved ? JSON.parse(saved) : [];
+        }
+        return [];
+    });
     const [existingStatus, setExistingStatus] = useState<Record<string, { exists: boolean, status?: string }>>({});
-    const [hasSearched, setHasSearched] = useState(false);
+    const [hasSearched, setHasSearched] = useState(() => {
+        if (typeof window !== 'undefined') return !!sessionStorage.getItem('lh_leads');
+        return false;
+    });
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,21 +55,24 @@ export default function LeadHunterPage() {
         setSearching(true);
         setHasSearched(true);
         setLeads([]);
+        sessionStorage.removeItem('lh_leads');
         try {
             const response = await api.post('/leads/search', query);
             const discoveredLeads = response.data;
             setLeads(discoveredLeads);
+            sessionStorage.setItem('lh_leads', JSON.stringify(discoveredLeads));
+            sessionStorage.setItem('lh_query', JSON.stringify(query));
             
-            // Check duplicates
-            const websites = discoveredLeads.map((l: any) => l.website).filter(Boolean);
-            if (websites.length > 0) {
-                const checkRes = await api.post('/leads/check-duplicates', { websites });
-                const statusMap: Record<string, any> = {};
-                checkRes.data.forEach((item: any) => {
-                    statusMap[item.website] = item;
-                });
-                setExistingStatus(statusMap);
-            }
+            // Check duplicates (non-blocking)
+            try {
+                const websites = discoveredLeads.map((l: any) => l.website).filter(Boolean);
+                if (websites.length > 0) {
+                    const checkRes = await api.post('/leads/check-duplicates', { websites });
+                    const statusMap: Record<string, any> = {};
+                    checkRes.data.forEach((item: any) => { statusMap[item.website] = item; });
+                    setExistingStatus(statusMap);
+                }
+            } catch { /* duplicate check is non-critical */ }
             
             toast.success(`Found ${discoveredLeads.length} qualified targets.`);
         } catch (error) {

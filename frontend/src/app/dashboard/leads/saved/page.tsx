@@ -90,6 +90,7 @@ export default function OutreachManagerPage() {
             setIsGenerating(true);
             const response = await api.post('/leads/generate-email', {
                 leadId: selectedLead.id,
+                leadData: selectedLead,
                 templateId: selectedTemplate.id
             });
 
