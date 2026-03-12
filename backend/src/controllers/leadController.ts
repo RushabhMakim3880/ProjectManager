@@ -113,7 +113,15 @@ export const getLeads = async (req: Request, res: Response, next: NextFunction) 
                 discoveredBy: { select: { name: true } }
             }
         });
-        res.json(leads);
+        // Parse JSON string fields so frontend receives proper types
+        const parsedLeads = leads.map((lead: any) => ({
+            ...lead,
+            suggestedServices: (() => {
+                try { return JSON.parse(lead.servicesRequested || '[]'); } catch { return []; }
+            })(),
+            fitReasoning: lead.description || 'Qualified based on industry fit and digital presence analysis.',
+        }));
+        res.json(parsedLeads);
     } catch (error) {
         next(error);
     }

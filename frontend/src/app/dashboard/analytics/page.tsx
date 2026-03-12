@@ -76,9 +76,9 @@ export default function AnalyticsPage() {
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { label: 'Agency Revenue', value: `$${stats?.revenue?.toLocaleString()}`, icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-                    { label: 'Active Projects', value: stats?.activeProjects, icon: Briefcase, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-                    { label: 'Conversion Rate', value: `${stats?.conversionRate?.toFixed(1)}%`, icon: Target, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+                    { label: 'Agency Revenue', value: `₹${(stats?.revenue ?? 0).toLocaleString('en-IN')}`, icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+                    { label: 'Active Projects', value: stats?.activeProjects ?? 0, icon: Briefcase, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+                    { label: 'Conversion Rate', value: `${(stats?.conversionRate ?? 0).toFixed(1)}%`, icon: Target, color: 'text-orange-400', bg: 'bg-orange-500/10' },
                     { label: 'Network Pulse', value: partners.length, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
                 ].map((item, idx) => (
                     <motion.div 
@@ -160,7 +160,7 @@ export default function AnalyticsPage() {
                     <div className="glass-card p-6 bg-neutral-900/40 border-white/5 flex flex-col items-center text-center">
                         <div className="relative mb-6">
                             <div className="w-32 h-32 rounded-full border-4 border-neutral-800 flex flex-col items-center justify-center">
-                                <span className="text-3xl font-black italic">{stats?.completedProjects}</span>
+                                <span className="text-3xl font-black italic">{stats?.completedProjects ?? 0}</span>
                                 <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Completed</span>
                             </div>
                             <div className="absolute top-0 left-0 w-full h-full border-t-4 border-indigo-500 rounded-full rotate-45" />

@@ -42,8 +42,8 @@ interface EmailTemplate {
     id: string;
     name: string;
     subject: string;
-    content: string;
-    category: string;
+    body: string;
+    category?: string;
 }
 
 export default function OutreachManagerPage() {
