@@ -41,20 +41,44 @@ export const finalizeProject = async (req: Request, res: Response) => {
             });
         }
 
-        const payoutData = Object.entries(contributions).map(([partnerId, percentage]) => {
-            const performanceShare = financials.performancePool * (percentage / 100);
+        const payoutMap: Record<string, any> = {};
+
+        // 3.1 Process effort-based contributions
+        for (const [partnerId, percentage] of Object.entries(contributions)) {
+            const performanceShare = financials.performancePool * ((percentage as number) / 100);
             const baseShare = financials.basePool / (totalPartnerCount || 1);
             
-            const totalAdvances = advancesByPartner[partnerId] || 0;
-            const grossPayout = baseShare + performanceShare;
-            const netPayout = grossPayout - totalAdvances;
-
-            return {
+            payoutMap[partnerId] = {
                 projectId,
                 partnerId,
                 baseShare,
                 performanceShare,
-                advanceDeduction: totalAdvances,
+                fixedCommission: 0,
+                advanceDeduction: advancesByPartner[partnerId] || 0,
+            };
+        }
+
+        // 3.2 Add fixed sales commission
+        if (project.salesPartnerId && project.salesCommissionAmount) {
+            if (!payoutMap[project.salesPartnerId]) {
+                const baseShare = financials.basePool / (totalPartnerCount || 1);
+                payoutMap[project.salesPartnerId] = {
+                    projectId,
+                    partnerId: project.salesPartnerId,
+                    baseShare,
+                    performanceShare: 0,
+                    fixedCommission: 0,
+                    advanceDeduction: advancesByPartner[project.salesPartnerId] || 0,
+                };
+            }
+            payoutMap[project.salesPartnerId].fixedCommission = project.salesCommissionAmount;
+        }
+
+        const payoutData = Object.values(payoutMap).map(p => {
+            const grossPayout = p.baseShare + p.performanceShare + p.fixedCommission;
+            const netPayout = grossPayout - p.advanceDeduction;
+            return {
+                ...p,
                 totalPayout: netPayout,
             };
         });
@@ -63,14 +87,11 @@ export const finalizeProject = async (req: Request, res: Response) => {
             data: payoutData,
         });
 
-        // 4. Update Partner total earnings (only the net new payout since advances were already given)
-        // Actually, if we want totalEarnings to reflect all money EVER received, then totalEarnings increases by grossPayout.
-        // If we only increase it now by netPayout, and the advance NEVER increased it, we must increase by grossPayout.
-        // For accuracy, let's assume totalEarnings = total money paid out. So base+perf.
+        // 4. Update Partner total earnings (Gross Payout)
         for (const payout of payoutData) {
             await prisma.partner.update({
                 where: { id: payout.partnerId },
-                data: { totalEarnings: { increment: payout.baseShare + payout.performanceShare } },
+                data: { totalEarnings: { increment: payout.baseShare + payout.performanceShare + payout.fixedCommission } },
             });
         }
 

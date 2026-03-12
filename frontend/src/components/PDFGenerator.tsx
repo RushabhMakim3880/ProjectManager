@@ -140,6 +140,22 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#4F46E5',
     },
+    signatureSection: {
+        marginTop: 50,
+        borderTop: 1,
+        borderTopColor: '#EEEEEE',
+        paddingTop: 20,
+    },
+    signatureImage: {
+        width: 150,
+        height: 60,
+        marginBottom: 10,
+    },
+    signatureDetail: {
+        fontSize: 9,
+        color: '#6B7280',
+        marginTop: 2,
+    },
     footerContainer: {
         position: 'absolute',
         bottom: 30,
@@ -173,6 +189,9 @@ interface PDFData {
     totalAmount?: number;
     currency?: string;
     validUntil?: string;
+    signature?: string;
+    signedBy?: string;
+    signedAt?: string;
 }
 
 export const DocumentPDF = ({ data, settings, type }: { data: PDFData, settings: any, type: 'QUOTATION' | 'PROPOSAL' }) => (
@@ -252,9 +271,43 @@ export const DocumentPDF = ({ data, settings, type }: { data: PDFData, settings:
                     {data.content.map((section: any, idx: number) => (
                         <View key={idx} style={styles.section} {...({} as any)}>
                             <Text style={styles.sectionTitle} {...({} as any)}>{section.title}</Text>
-                            <Text style={styles.text} {...({} as any)}>{section.content}</Text>
+                            {section.type === 'pricing' ? (
+                                <View style={styles.table} {...({} as any)}>
+                                    <View style={styles.tableHeaderRow} {...({} as any)}>
+                                        <View style={{ width: '70%' }} {...({} as any)}><Text style={styles.tableHeaderCell} {...({} as any)}>Description</Text></View>
+                                        <View style={{ width: '30%' }} {...({} as any)}><Text style={[styles.tableHeaderCell, { textAlign: 'right' }]} {...({} as any)}>Investment</Text></View>
+                                    </View>
+                                    {Array.isArray(section.content) && section.content.map((item: any, i: number) => (
+                                        <View key={i} style={styles.tableRow} {...({} as any)}>
+                                            <View style={{ width: '70%' }} {...({} as any)}><Text style={styles.tableCell} {...({} as any)}>{item.description}</Text></View>
+                                            <View style={{ width: '30%' }} {...({} as any)}><Text style={[styles.tableCell, { textAlign: 'right' }]} {...({} as any)}>{data.currency || 'INR'} {item.amount.toLocaleString()}</Text></View>
+                                        </View>
+                                    ))}
+                                    <View style={[styles.tableRow, { backgroundColor: '#EEF2FF', borderBottomWidth: 0 }]} {...({} as any)}>
+                                        <View style={{ width: '70%' }} {...({} as any)}><Text style={[styles.tableCell, { fontWeight: 'bold' }]} {...({} as any)}>Total Investment</Text></View>
+                                        <View style={{ width: '30%' }} {...({} as any)}><Text style={[styles.tableCell, { textAlign: 'right', fontWeight: 'bold', color: '#4F46E5' }]} {...({} as any)}>{data.currency || 'INR'} {section.content.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}</Text></View>
+                                    </View>
+                                </View>
+                            ) : (
+                                <Text style={styles.text} {...({} as any)}>{section.content}</Text>
+                            )}
                         </View>
                     ))}
+
+                    {/* E-Signature Section */}
+                    {data.signature && (
+                        <View style={styles.signatureSection} {...({} as any)}>
+                            <Text style={styles.sectionTitle} {...({} as any)}>Digital Authorization</Text>
+                            <View style={{ flexDirection: 'row', gap: 40 }} {...({} as any)}>
+                                <View {...({} as any)}>
+                                    <Image src={data.signature} style={styles.signatureImage} {...({} as any)} />
+                                    <Text style={[styles.companyName, { fontSize: 14 }]} {...({} as any)}>{data.signedBy}</Text>
+                                    <Text style={styles.signatureDetail} {...({} as any)}>Digitally signed on {new Date(data.signedAt).toLocaleString()}</Text>
+                                    <Text style={styles.signatureDetail} {...({} as any)}>This is a legally binding electronic signature.</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
                 </View>
             )}
 

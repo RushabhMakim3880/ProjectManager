@@ -11,7 +11,11 @@ import {
     createQuotation,
     getQuotations,
     createProposal,
-    getProposals
+    getProposals,
+    extractDiscovery,
+    updateProposal,
+    signProposal,
+    generateDraftEmail
 } from '../controllers/enquiryController.js';
 import {
     addEnquiryNote,
@@ -19,6 +23,7 @@ import {
     deleteEnquiryNote
 } from '../controllers/enquiryNoteController.js';
 import { authenticate, authorize } from '../middleware/authMiddleware.js';
+import { upload } from '../middleware/fileUploadMiddleware.js';
 
 const router = Router();
 
@@ -39,6 +44,10 @@ router.post('/:id/quotations', authenticate, authorize(['ADMIN', 'PARTNER']), cr
 router.get('/:id/quotations', authenticate, authorize(['ADMIN', 'PARTNER']), getQuotations);
 router.post('/:id/proposals', authenticate, authorize(['ADMIN', 'PARTNER']), createProposal);
 router.get('/:id/proposals', authenticate, authorize(['ADMIN', 'PARTNER']), getProposals);
+router.patch('/:id/proposals/:proposalId', authenticate, authorize(['ADMIN', 'PARTNER']), updateProposal);
+router.post('/:id/proposals/:proposalId/sign', authenticate, authorize(['ADMIN', 'PARTNER']), signProposal);
+router.post('/:id/extract-questionnaire', authenticate, authorize(['ADMIN', 'PARTNER']), upload.single('file'), extractDiscovery);
+router.post('/:id/generate-draft-email', authenticate, authorize(['ADMIN', 'PARTNER']), generateDraftEmail);
 
 // Lead Notes
 router.post('/:id/notes', authenticate, authorize(['ADMIN', 'PARTNER']), addEnquiryNote);

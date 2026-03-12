@@ -17,9 +17,11 @@ import {
     TrendingUp,
     Filter,
     ArrowRight,
-    Receipt
+    Receipt,
+    Camera
 } from 'lucide-react';
 import api from '@/lib/api';
+import ReceiptUploader from './ReceiptUploader';
 
 interface Transaction {
     id: string;
@@ -41,6 +43,7 @@ export default function ProjectLedger({ projectId, onUpdate }: ProjectLedgerProp
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showScanModal, setShowScanModal] = useState(false);
     const [newTransaction, setNewTransaction] = useState({
         amount: '',
         type: 'INCOME',
@@ -197,13 +200,22 @@ export default function ProjectLedger({ projectId, onUpdate }: ProjectLedgerProp
                         <Filter className="w-3.5 h-3.5" /> All Transactions
                     </button>
                 </div>
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_25px_rgba(255,255,255,0.1)]"
-                >
-                    <Plus className="w-4 h-4" />
-                    Record Movement
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowScanModal(true)}
+                        className="flex items-center gap-2 px-6 py-3 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                    >
+                        <Camera className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                        Scan Receipt
+                    </button>
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_25px_rgba(255,255,255,0.1)]"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Record Movement
+                    </button>
+                </div>
             </div>
 
             {/* Transactions Audit Trail */}
@@ -464,6 +476,19 @@ export default function ProjectLedger({ projectId, onUpdate }: ProjectLedgerProp
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showScanModal && (
+                    <ReceiptUploader 
+                        projectId={projectId}
+                        onClose={() => setShowScanModal(false)}
+                        onSuccess={() => {
+                            fetchTransactions();
+                            if (onUpdate) onUpdate();
+                        }}
+                    />
                 )}
             </AnimatePresence>
         </div>

@@ -21,7 +21,7 @@ export const errorMiddleware = (err: any, req: Request, res: Response, next: Nex
             status: 'error',
             message: err.message,
             stack: err.stack,
-            error: err
+            error: typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : err
         });
     }
 

@@ -176,9 +176,6 @@ export default function ProjectDetailsPage() {
         );
     }
 
-    // Default weights if not present
-    const weights = project.weights ? (typeof project.weights === 'string' ? JSON.parse(project.weights) : project.weights) : {};
-
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header section */}
@@ -362,7 +359,7 @@ export default function ProjectDetailsPage() {
                                 <TaskManager
                                     projectId={id}
                                     tasks={project.tasks || []}
-                                    categories={Object.keys(weights)}
+                                    categories={['acquisition', 'planning', 'execution', 'testing', 'communication', 'delivery']}
                                     onTaskUpdate={fetchProject}
                                 />
                             </div>
@@ -571,10 +568,6 @@ export default function ProjectDetailsPage() {
                                     </div>
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between py-2 border-b border-neutral-800">
-                                            <span className="text-sm text-neutral-400">Category Locking</span>
-                                            <span className="text-xs font-bold text-neutral-500">{project.lockWeights ? 'LOCKED' : 'FLEXIBLE'}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between py-2 border-b border-neutral-800">
                                             <span className="text-sm text-neutral-400">Visibility</span>
                                             <span className="text-xs font-bold text-neutral-400">{project.visibility || 'INTERNAL'}</span>
                                         </div>
@@ -586,17 +579,7 @@ export default function ProjectDetailsPage() {
                                 </div>
                             </div>
 
-                            <div className="glass-card p-6">
-                                <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-6">Distribution Model (Weights)</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                                    {Object.entries(weights).map(([cat, weight]) => (
-                                        <div key={cat} className="p-3 bg-neutral-900/50 rounded-xl border border-neutral-800 text-center">
-                                            <p className="text-[10px] text-neutral-500 uppercase font-bold mb-1 truncate">{cat}</p>
-                                            <p className="text-lg font-bold text-white">{weight as number}%</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+
                         </div>
                     )}
 

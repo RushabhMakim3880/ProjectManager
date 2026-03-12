@@ -1,17 +1,18 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { type AuthRequest } from '../middleware/authMiddleware.js';
 import { AppError } from '../middleware/errorMiddleware.js';
 
 export const createProject = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const {
-            name, clientName, totalValue, startDate, endDate, description, weights,
+            name, clientName, totalValue, startDate, endDate, description,
             projectIdCustom, projectType, category, priority,
             clientContact, clientEmail, clientPhone, whatsappNumber, commsChannel, timezone, location,
             ndaSigned, internalDeadline, clientDeadline,
             objectives, deliverables, outOfScope, techStack, environments, accessReqs, dependencies, riskLevel,
             projectLeadId, techLeadId, commsLeadId, qaLeadId, salesOwnerId,
-            enableContributionTracking, lockWeights, enableTaskLogging, effortScale, timeTrackingEnabled, approvalRequired,
+            enableContributionTracking, enableTaskLogging, effortScale, timeTrackingEnabled, approvalRequired,
             visibility, canEdit, canAddTasks, canFinalize, autoLock,
             specialInstructions, riskNotes, clientConstraints, escalationContact, internalRemarks,
             milestones, githubUrl
@@ -25,7 +26,6 @@ export const createProject = async (req: Request, res: Response, next: NextFunct
                 startDate: new Date(startDate),
                 endDate: endDate ? new Date(endDate) : null,
                 description,
-                weights: typeof weights === 'string' ? weights : JSON.stringify(weights || {}),
 
                 projectIdCustom,
                 projectType,
@@ -58,7 +58,6 @@ export const createProject = async (req: Request, res: Response, next: NextFunct
                 salesOwnerId,
 
                 enableContributionTracking: !!enableContributionTracking,
-                lockWeights: !!lockWeights,
                 enableTaskLogging: !!enableTaskLogging,
                 effortScale,
                 timeTrackingEnabled: !!timeTrackingEnabled,
@@ -117,9 +116,32 @@ export const createProject = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export const getProjects = async (req: Request, res: Response, next: NextFunction) => {
+export const getProjects = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+        const { role, userId } = req.user!;
+        let filter: any = {};
+
+        if (role === 'CLIENT') {
+            filter = { clientId: userId };
+        } else if (role === 'PARTNER') {
+            const partner = await prisma.partner.findUnique({ where: { userId } });
+            if (!partner) return res.status(403).json({ error: 'Partner profile not found' });
+            
+            filter = {
+                OR: [
+                    { projectLeadId: partner.id },
+                    { techLeadId: partner.id },
+                    { commsLeadId: partner.id },
+                    { qaLeadId: partner.id },
+                    { salesOwnerId: partner.id },
+                    { salesPartnerId: partner.id },
+                    { contributions: { some: { partnerId: partner.id } } }
+                ]
+            };
+        }
+
         const projects = await prisma.project.findMany({
+            where: filter,
             include: {
                 _count: { select: { tasks: true } },
                 advances: true,
@@ -128,14 +150,25 @@ export const getProjects = async (req: Request, res: Response, next: NextFunctio
                 }
             },
         });
+
+        // Strip sensitive fields for non-admins
+        if (role !== 'ADMIN') {
+            projects.forEach((p: any) => {
+                delete p.netProfit;
+                delete p.internalRemarks;
+                delete p.riskNotes;
+            });
+        }
+
         res.json(projects);
     } catch (error: any) {
         next(error);
     }
 };
 
-export const getProjectById = async (req: Request, res: Response, next: NextFunction) => {
+export const getProjectById = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { id } = req.params;
+    const { role, userId } = req.user!;
     try {
         const project = await prisma.project.findUnique({
             where: { id },
@@ -155,7 +188,43 @@ export const getProjectById = async (req: Request, res: Response, next: NextFunc
                 milestones: true,
             },
         });
+
         if (!project) return next(new AppError('Project not found', 404));
+
+        // ACL Check
+        if (role === 'CLIENT' && project.clientId !== userId) {
+            return next(new AppError('Forbidden: Access to this project is restricted', 403));
+        }
+
+        if (role === 'PARTNER') {
+            const partner = await prisma.partner.findUnique({ where: { userId } });
+            if (!partner) return next(new AppError('Partner profile not found', 403));
+
+            const isLead = [
+                project.projectLeadId, project.techLeadId, project.commsLeadId,
+                project.qaLeadId, project.salesOwnerId, project.salesPartnerId
+            ].includes(partner.id);
+
+            const isContributor = project.contributions.some((c: any) => c.partnerId === partner.id);
+
+            if (!isLead && !isContributor) {
+                return next(new AppError('Forbidden: Access to this project is restricted', 403));
+            }
+        }
+
+        // Strip sensitive fields for non-admins
+        if (role !== 'ADMIN') {
+            const p = project as any;
+            delete p.netProfit;
+            delete p.internalRemarks;
+            delete p.riskNotes;
+            // Also hide detailed transactions if Client
+            if (role === 'CLIENT') {
+                delete p.transactions;
+                delete p.financialRecords;
+            }
+        }
+
         res.json(project);
     } catch (error: any) {
         next(error);
@@ -166,13 +235,13 @@ export const updateProject = async (req: Request, res: Response, next: NextFunct
     const { id } = req.params;
     try {
         const {
-            name, clientName, totalValue, startDate, endDate, description, weights,
+            name, clientName, totalValue, startDate, endDate, description,
             projectType, category, priority, status,
             clientContact, clientEmail, clientPhone, whatsappNumber, commsChannel, timezone, location,
             ndaSigned, internalDeadline, clientDeadline,
             objectives, deliverables, outOfScope, techStack, environments, accessReqs, dependencies, riskLevel,
             projectLeadId, techLeadId, commsLeadId, qaLeadId, salesOwnerId,
-            enableContributionTracking, lockWeights, enableTaskLogging, autoLock,
+            enableContributionTracking, enableTaskLogging, autoLock,
             milestones, githubUrl
         } = req.body;
 
@@ -186,7 +255,6 @@ export const updateProject = async (req: Request, res: Response, next: NextFunct
                 endDate: endDate ? new Date(endDate) : undefined,
                 description,
                 status,
-                weights: weights ? (typeof weights === 'string' ? weights : JSON.stringify(weights)) : undefined,
                 projectType,
                 category,
                 priority,
@@ -209,7 +277,6 @@ export const updateProject = async (req: Request, res: Response, next: NextFunct
                 dependencies,
                 riskLevel,
                 enableContributionTracking: enableContributionTracking !== undefined ? !!enableContributionTracking : undefined,
-                lockWeights: lockWeights !== undefined ? !!lockWeights : undefined,
                 enableTaskLogging: enableTaskLogging !== undefined ? !!enableTaskLogging : undefined,
                 autoLock: autoLock !== undefined ? !!autoLock : undefined,
                 projectLeadId,

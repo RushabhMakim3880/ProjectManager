@@ -27,6 +27,10 @@ import systemRoutes from './routes/systemRoutes.js';
 import payoutRoutes from './routes/payoutRoutes.js';
 import financeRoutes from './routes/financeRoutes.js';
 import enquiryRoutes from './routes/enquiryRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
+import leadRoutes from './routes/leadRoutes.js';
+
 import { finalizeProject } from './controllers/payoutController.js';
 import { logAction } from './middleware/auditMiddleware.js';
 import { authenticate, authorize } from './middleware/authMiddleware.js';
@@ -41,6 +45,10 @@ app.use('/api/system', systemRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/enquiries', enquiryRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/leads', leadRoutes);
+
 
 app.post('/api/projects/:projectId/finalize', authenticate, authorize(['ADMIN']), logAction('FINALIZE', 'PROJECT'), finalizeProject);
 

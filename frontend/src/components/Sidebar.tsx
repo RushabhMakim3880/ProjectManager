@@ -13,7 +13,11 @@ import {
     LogOut,
     ShieldAlert,
     ShieldCheck,
-    Inbox
+    Inbox,
+    Activity,
+    TrendingUp,
+    Radar,
+    Mail
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -24,9 +28,13 @@ function cn(...inputs: ClassValue[]) {
 
 const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+    { name: 'Analytics', icon: TrendingUp, href: '/dashboard/analytics' },
+    { name: 'Lead Hunter', icon: Radar, href: '/dashboard/leads' },
+    { name: 'Outreach', icon: Mail, href: '/dashboard/leads/saved' },
     { name: 'Enquiries', icon: Inbox, href: '/dashboard/enquiries' },
     { name: 'Projects', icon: Briefcase, href: '/dashboard/projects' },
     { name: 'Partners', icon: Users, href: '/dashboard/partners' },
+    { name: 'Operations', icon: Activity, href: '/dashboard/operations' },
     { name: 'Financials', icon: PieChart, href: '/dashboard/financials' },
     { name: 'Documents', icon: FileText, href: '/dashboard/documents' },
     { name: 'Agreements', icon: ShieldCheck, href: '/dashboard/agreements' },
@@ -45,15 +53,15 @@ export default function Sidebar() {
     };
 
     return (
-        <aside className="w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col h-full">
+        <aside className="w-64 bg-[#0a0f16]/40 backdrop-blur-2xl border-r border-white/5 flex flex-col h-full relative z-20 shadow-2xl">
             <div className="p-6 flex items-center gap-3">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-lg">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center font-bold text-lg shadow-[0_0_15px_rgba(59,130,246,0.3)] border border-white/10">
                     P
                 </div>
-                <span className="font-bold text-xl tracking-tight">ProjectBase</span>
+                <span className="font-bold text-xl tracking-tight text-white drop-shadow-sm">ProjectBase</span>
             </div>
 
-            <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
+            <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar pt-2">
                 {navItems.map((item) => {
                     const isActive = pathname === item.href;
                     return (
@@ -61,31 +69,31 @@ export default function Sidebar() {
                             key={item.name}
                             href={item.href}
                             className={cn(
-                                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group",
+                                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group border",
                                 isActive
-                                    ? "bg-indigo-600/10 text-indigo-400 font-medium"
-                                    : "text-neutral-400 hover:text-neutral-100 hover:bg-neutral-800"
+                                    ? "bg-blue-500/10 text-blue-400 font-medium border-blue-500/20 shadow-[inset_0_1px_rgba(255,255,255,0.05)]"
+                                    : "border-transparent text-neutral-400 hover:text-white hover:bg-white/5"
                             )}
                         >
                             <item.icon className={cn(
-                                "w-5 h-5 transition-colors",
-                                isActive ? "text-indigo-400" : "text-neutral-500 group-hover:text-neutral-300"
+                                "w-4 h-4 transition-colors drop-shadow-sm",
+                                isActive ? "text-blue-400" : "text-neutral-500 group-hover:text-neutral-300"
                             )} />
-                            {item.name}
+                            <span className="text-sm drop-shadow-sm">{item.name}</span>
                             {isActive && (
-                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
                             )}
                         </Link>
                     );
                 })}
             </nav>
 
-            <div className="p-4 border-t border-neutral-800">
+            <div className="p-4 border-t border-white/5 bg-gradient-to-t from-[#0a0f16]/80 to-transparent">
                 <button
                     onClick={handleLogout}
-                    className="flex items-center gap-3 w-full px-3 py-2.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-all group"
+                    className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all group border border-transparent hover:border-red-500/20"
                 >
-                    <LogOut className="w-5 h-5 text-neutral-500 group-hover:text-red-400" />
+                    <LogOut className="w-4 h-4 text-neutral-500 group-hover:text-red-400" />
                     Logout
                 </button>
             </div>

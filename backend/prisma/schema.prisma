@@ -31,6 +31,7 @@ model User {
   enquiries     Enquiry[]
   enquiryNotes  EnquiryNote[]
   recordedAdvances AdvancePayout[] @relation("RecordedAdvances")
+  discoveredLeads Lead[] @relation("DiscoveredLeads")
 }
 
 model Partner {
@@ -47,7 +48,9 @@ model Partner {
   timezone        String?        @default("UTC")
   
   // 3. Role Configuration
-  partnerType     String         @default("NON_EQUITY") // EQUITY / NON_EQUITY / CONTRACTOR
+  partnerType     String         @default("NON_EQUITY") // EQUITY / NON_EQUITY / CONTRACTOR / EXECUTION / SALES / SPECIALIST / FREELANCER
+  commissionRate  Float          @default(0)
+  skills          String?        // Comma-separated or JSON list of skills
   isEquity        Boolean        @default(false)
   hasVotingRights Boolean        @default(false)
   canApprovePayouts Boolean      @default(false)
@@ -105,6 +108,7 @@ model Partner {
   contributions   Contribution[]
   capitalInjections CapitalInjection[]
   tasks           Task[]
+  salesProjects   Project[]      @relation("ProjectSalesPartner")
 }
 
 model Project {
@@ -162,11 +166,12 @@ model Project {
   commsLeadId       String?
   qaLeadId          String?
   salesOwnerId      String?
+  salesPartnerId    String?
+  salesPartner      Partner?       @relation("ProjectSalesPartner", fields: [salesPartnerId], references: [id])
+  salesCommissionAmount Float      @default(0)
   
   // Contribution & Task Setup
   enableContributionTracking Boolean @default(true)
-  weights           String         // Storing category weights as JSON string
-  lockWeights       Boolean        @default(false)
   enableTaskLogging Boolean        @default(true)
   effortScale       String?        @default("FIBONACCI") // 1/3/5/8
   timeTrackingEnabled Boolean      @default(false)
@@ -224,6 +229,8 @@ model Transaction {
   method        String   // UPI / Card / Bank / Cash / Other
   transactionId String?  // Optional reference number
   description   String?
+  fileKey       String?  // Storage key for the receipt image
+  receiptData   String?  // JSON extracted by AI
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -323,8 +330,9 @@ model Payout {
   partner           Partner  @relation(fields: [partnerId], references: [id])
   baseShare         Float
   performanceShare  Float
+  fixedCommission   Float    @default(0)
   advanceDeduction  Float    @default(0)
-  totalPayout       Float    // (Base + Perf) - Advance
+  totalPayout       Float    // (Base + Perf + Fixed) - Advance
   isApproved        Boolean  @default(false)
   payoutDate        DateTime?
   createdAt         DateTime @default(now())
@@ -417,7 +425,7 @@ model Enquiry {
   enquiryId         String       @unique // ENQ-YYYY-NNN
   clientName        String
   companyName       String?
-  email             String
+  email             String?
   phone             String?
   country           String?
   servicesRequested String       // JSON array
@@ -434,6 +442,8 @@ model Enquiry {
   proposals         Proposal[]
   notes             EnquiryNote[]
   
+  lead              Lead?
+  
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 }
@@ -441,7 +451,7 @@ model Enquiry {
 model Quotation {
   id          String   @id @default(cuid())
   enquiryId   String
-  enquiry     Enquiry  @relation(fields: [enquiryId], references: [id])
+  enquiry     Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
   title       String?  // Quotation title
   totalAmount Float
   taxAmount   Float?
@@ -460,11 +470,17 @@ model Quotation {
 model Proposal {
   id          String   @id @default(cuid())
   enquiryId   String
-  enquiry     Enquiry  @relation(fields: [enquiryId], references: [id])
+  enquiry     Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
   title       String?
   content     String?  // JSON blocks
   fileKey     String?
   status      String   @default("DRAFT")
+  
+  // Signature Fields
+  signature   String?  // Base64 signature image
+  signedAt    DateTime?
+  signedBy    String?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -478,4 +494,38 @@ model EnquiryNote {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Lead {
+  id                String       @id @default(cuid())
+  name              String
+  companyName       String?
+  website           String?
+  email             String?
+  industry          String?
+  description       String?
+  servicesRequested String       // JSON array
+  fitScore          Int          @default(0)
+  status            String       @default("DISCOVERED") // DISCOVERED, EMAILED, RESPONDED, IGNORED, CONVERTED
+  emailSentAt       DateTime?
+  responseReceivedAt DateTime?
+  
+  enquiryId         String?      @unique
+  enquiry           Enquiry?     @relation(fields: [enquiryId], references: [id])
+  
+  discoveredById    String
+  discoveredBy      User         @relation("DiscoveredLeads", fields: [discoveredById], references: [id])
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  subject     String
+  body        String   // Markdown/Rich text
+  type        String   @default("COLD_OUTREACH")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

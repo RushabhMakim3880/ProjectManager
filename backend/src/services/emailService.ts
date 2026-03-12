@@ -16,7 +16,7 @@ const FROM = process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@protrack
 const isEmailConfigured = () => !!(process.env.SMTP_USER && process.env.SMTP_PASS);
 
 // ─── Core Send Function ───
-async function sendEmail(to: string | string[], subject: string, html: string) {
+export async function sendEmail(to: string | string[], subject: string, html: string) {
     if (!isEmailConfigured()) {
         console.log('[EMAIL] SMTP not configured, skipping email:', subject);
         return;

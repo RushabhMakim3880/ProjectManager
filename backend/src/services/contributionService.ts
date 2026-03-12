@@ -109,12 +109,19 @@ export const calculateFinancials = async (projectId: string) => {
 
     const actualBalance = totalIncome - totalExpenses;
 
+    let preSplitDeductions = 0;
+    
+    // Support Fixed sales commission before profit splits
+    if (project.salesPartnerId && project.salesCommissionAmount > 0) {
+        preSplitDeductions += project.salesCommissionAmount;
+    }
+
     // Profit Calculation Logic:
-    // We take the actual balance and apply the 85/10/5 split.
-    // This ensures partners are paid from REALIZED profit.
-    const businessReserve = actualBalance * 0.10;
-    const religiousAllocation = actualBalance * 0.05;
-    const netDistributable = actualBalance - businessReserve - religiousAllocation;
+    // We take the actual balance minus pre-split distributions and apply the 85/10/5 split.
+    const distributableBalance = actualBalance - preSplitDeductions;
+    const businessReserve = distributableBalance * 0.10;
+    const religiousAllocation = distributableBalance * 0.05;
+    const netDistributable = distributableBalance - businessReserve - religiousAllocation;
 
     const basePool = netDistributable * 0.20;
     const performancePool = netDistributable * 0.80;
@@ -122,7 +129,7 @@ export const calculateFinancials = async (projectId: string) => {
     // Update project netProfit
     await prisma.project.update({
         where: { id: projectId },
-        data: { netProfit: netDistributable },
+        data: { netProfit: distributableBalance },
     });
 
     // Create or update financial record
@@ -142,6 +149,7 @@ export const calculateFinancials = async (projectId: string) => {
         ...financial,
         totalIncome,
         totalExpenses,
-        actualBalance
+        actualBalance,
+        preSplitDeductions,
     };
 };

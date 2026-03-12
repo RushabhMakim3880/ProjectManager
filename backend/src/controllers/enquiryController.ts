@@ -1,6 +1,9 @@
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { AppError } from '../middleware/errorMiddleware.js';
+import fs from 'fs';
+import { extractDiscoveryFlow } from '../flows/extract-discovery.js';
+import { generateColdEmailFlow } from '../flows/generate-cold-email.js';
 
 export const createEnquiry = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -335,5 +338,159 @@ export const getProposals = async (req: Request, res: Response, next: NextFuncti
         res.json(parsed);
     } catch (error) {
         next(error);
+    }
+};
+
+export const extractDiscovery = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const file = req.file;
+
+        if (!file) {
+            return next(new AppError('No file uploaded', 400));
+        }
+
+        const enquiry = await prisma.enquiry.findUnique({
+            where: { id }
+        });
+
+        if (!enquiry) {
+            return next(new AppError('Enquiry not found', 404));
+        }
+
+        // 1. Read file and convert to base64
+        const fileBuffer = fs.readFileSync(file.path);
+        const base64Content = fileBuffer.toString('base64');
+
+        // 2. Call Genkit Flow
+        const extractedData = await extractDiscoveryFlow({
+            fileBuffer: base64Content,
+            fileType: file.mimetype
+        });
+
+        // 3. Update Enquiry
+        const updatedEnquiry = await prisma.enquiry.update({
+            where: { id },
+            data: {
+                discoveryData: JSON.stringify(extractedData),
+                stage: enquiry.stage === 'NEW' ? 'DISCOVERY_IN_PROGRESS' : enquiry.stage
+            }
+        });
+
+        // 4. Optionally create a note for tracking
+        await prisma.enquiryNote.create({
+            data: {
+                enquiryId: id,
+                content: `AI Discovery Extraction completed. Extracted goals: ${String(extractedData.projectGoals).substring(0, 100)}...`,
+                userId: (req as any).user?.userId || '' // Assuming auth middleware attaches user
+            }
+        });
+
+        res.json({
+            message: 'Discovery data extracted successfully',
+            discoveryData: extractedData
+        });
+
+        // Cleanup: remove uploaded file after processing
+        fs.unlinkSync(file.path);
+
+    } catch (error) {
+        console.error('AI Extraction Error:', error);
+        next(new AppError('Failed to extract data from questionnaire', 500));
+    }
+};
+
+export const updateProposal = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { proposalId } = req.params;
+        const { title, content, status } = req.body;
+
+        const proposal = await prisma.proposal.findUnique({
+            where: { id: proposalId }
+        });
+
+        if (!proposal) {
+            return next(new AppError('Proposal not found', 404));
+        }
+
+        if (proposal.status === 'SIGNED') {
+            return next(new AppError('Cannot update a signed proposal', 400));
+        }
+
+        const updated = await prisma.proposal.update({
+            where: { id: proposalId },
+            data: {
+                title: title || proposal.title,
+                content: content ? JSON.stringify(content) : proposal.content,
+                status: status || proposal.status
+            }
+        });
+
+        res.json(updated);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const signProposal = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { proposalId } = req.params;
+        const { signature, signedBy } = req.body;
+
+        const proposal = await prisma.proposal.findUnique({
+            where: { id: proposalId }
+        });
+
+        if (!proposal) {
+            return next(new AppError('Proposal not found', 404));
+        }
+
+        if (proposal.status === 'SIGNED') {
+            return next(new AppError('Proposal is already signed', 400));
+        }
+
+        const updated = await prisma.proposal.update({
+            where: { id: proposalId },
+            data: {
+                signature,
+                signedBy,
+                signedAt: new Date(),
+                status: 'SIGNED'
+            }
+        });
+
+        res.json(updated);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const generateDraftEmail = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const enquiry = await prisma.enquiry.findUnique({
+            where: { id }
+        });
+
+        if (!enquiry) {
+            return next(new AppError('Enquiry not found', 404));
+        }
+
+        const discoveryData = enquiry.discoveryData ? JSON.parse(enquiry.discoveryData) : {};
+        const servicesRequested = JSON.parse(enquiry.servicesRequested || '[]');
+
+        const draft = await generateColdEmailFlow({
+            clientName: enquiry.clientName,
+            companyName: enquiry.companyName || undefined,
+            servicesRequested,
+            projectDescription: discoveryData.projectDescription || '',
+            senderName: (req as any).user?.displayName || (req as any).user?.name || 'Managing Director',
+            agencyName: 'Stitch Digital'
+        });
+
+        res.json(draft);
+    } catch (error) {
+        console.error('Email Generation Error:', error);
+        next(new AppError('Failed to generate email draft', 500));
     }
 };

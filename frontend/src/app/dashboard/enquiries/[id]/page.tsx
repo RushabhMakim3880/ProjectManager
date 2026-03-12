@@ -50,6 +50,7 @@ export default function EnquiryDetailPage() {
     const [loadingDocs, setLoadingDocs] = useState(false);
     const [showQuotationBuilder, setShowQuotationBuilder] = useState(false);
     const [showProposalBuilder, setShowProposalBuilder] = useState(false);
+    const [selectedProposal, setSelectedProposal] = useState<any>(null);
     const [systemSettings, setSystemSettings] = useState<any>(null);
 
     useEffect(() => {
@@ -470,7 +471,11 @@ export default function EnquiryDetailPage() {
                                     </div>
                                 ) : (
                                     proposals.map((p: any) => (
-                                        <div key={p.id} className="flex items-center justify-between p-4 bg-neutral-950/50 border border-neutral-800 rounded-2xl hover:border-neutral-700 transition-all cursor-pointer group">
+                                        <div 
+                                            key={p.id} 
+                                            onClick={() => { setSelectedProposal(p); setShowProposalBuilder(true); }}
+                                            className="flex items-center justify-between p-4 bg-neutral-950/50 border border-neutral-800 rounded-2xl hover:border-neutral-700 transition-all cursor-pointer group"
+                                        >
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500"><FileText className="w-5 h-5" /></div>
                                                 <div>
@@ -561,7 +566,8 @@ export default function EnquiryDetailPage() {
                 <ProposalBuilder
                     enquiryId={id as string}
                     initialServices={enquiry?.servicesRequested}
-                    onClose={() => setShowProposalBuilder(false)}
+                    existingProposal={selectedProposal}
+                    onClose={() => { setShowProposalBuilder(false); setSelectedProposal(null); }}
                     onSave={() => fetchDocuments()}
                 />
             )}

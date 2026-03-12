@@ -35,7 +35,6 @@ export interface Project {
     status: ProjectStatus;
     priority: ProjectPriority;
     isLocked: boolean;
-    weights: string; // JSON string
 }
 
 export type TaskStatus = 'BACKLOG' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';

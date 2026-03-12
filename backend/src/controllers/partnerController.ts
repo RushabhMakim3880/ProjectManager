@@ -208,3 +208,51 @@ export const createPartner = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+export const getPartnerWorkload = async (req: Request, res: Response) => {
+    try {
+        const partners = await prisma.partner.findMany({
+            include: { user: { select: { name: true, email: true, displayName: true } } }
+        });
+        
+        const activeProjects = await prisma.project.findMany({
+            where: { 
+                status: {
+                    in: ['ACTIVE', 'PLANNED', 'ON_HOLD']
+                }
+            },
+            select: { 
+                id: true, 
+                name: true, 
+                projectLeadId: true, 
+                techLeadId: true, 
+                commsLeadId: true, 
+                qaLeadId: true, 
+                salesOwnerId: true 
+            }
+        });
+
+        const workload = partners.map(partner => {
+            const assigned = activeProjects.filter(p => 
+                p.projectLeadId === partner.id || 
+                p.techLeadId === partner.id || 
+                p.commsLeadId === partner.id || 
+                p.qaLeadId === partner.id || 
+                p.salesOwnerId === partner.id
+            );
+            return {
+                id: partner.id,
+                name: partner.user.displayName || partner.user.name,
+                email: partner.user.email,
+                skills: partner.skills ? partner.skills.split(',').map(s => s.trim()) : [],
+                activeProjectsCount: assigned.length,
+                projects: assigned.map(p => ({ id: p.id, name: p.name }))
+            };
+        });
+
+        res.json(workload);
+    } catch (error) {
+        console.error('Get workload error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};

@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Mail, Loader2, Link as LinkIcon, Eye, Building, Calendar, Phone, Edit2, Trash2, X } from 'lucide-react';
-
+import { Mail, Loader2, Link as LinkIcon, Eye, Building, Calendar, Phone, Edit2, Trash2, X, Plus } from 'lucide-react';
+import EnquiryKanban from './EnquiryKanban';
+import EnquiryDetailPanel from './EnquiryDetailPanel';
+import NewEnquiryModal from './NewEnquiryModal';
+import { PartnerAssignmentModal } from './PartnerAssignmentModal';
+import { Users as UsersIcon } from 'lucide-react';
 interface Enquiry {
     id: string;
     enquiryId: string;
@@ -25,6 +29,9 @@ export default function EnquiryList() {
     const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
     const [loading, setLoading] = useState(true);
     const [editModal, setEditModal] = useState<{ isOpen: boolean; enquiry: Enquiry | null }>({ isOpen: false, enquiry: null });
+    const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
+    const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
+    const [assignmentModal, setAssignmentModal] = useState<{ isOpen: boolean; enquiry: Enquiry | null }>({ isOpen: false, enquiry: null });
 
     const fetchEnquiries = async () => {
         try {
@@ -63,20 +70,16 @@ export default function EnquiryList() {
         }
     };
 
-    const handleUpdate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editModal.enquiry) return;
-
+    const handleUpdateStage = async (id: string, newStage: string) => {
         try {
             const token = localStorage.getItem('accessToken');
-            const { id, ...data } = editModal.enquiry;
-            await axios.patch(`${process.env.NEXT_PUBLIC_API_URL}/enquiries/${id}`, data, {
+            await axios.patch(`${process.env.NEXT_PUBLIC_API_URL}/enquiries/${id}`, { stage: newStage }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setEditModal({ isOpen: false, enquiry: null });
-            fetchEnquiries();
+            // Update local state without fetching all again
+            setEnquiries(enquiries.map(e => e.id === id ? { ...e, stage: newStage } : e));
         } catch (error: any) {
-            alert(error.response?.data?.error || 'Failed to update enquiry');
+            alert(error.response?.data?.error || 'Failed to update stage');
         }
     };
 
@@ -121,12 +124,32 @@ export default function EnquiryList() {
                 {/* Header */}
                 <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-white">All Enquiries</h2>
-                    <div className="text-sm text-neutral-500">
-                        {enquiries.length} enquiries in pipeline
+                    <div className="flex items-center gap-4">
+                        <div className="flex bg-neutral-800 rounded-lg p-1">
+                            <button 
+                                onClick={() => setViewMode('kanban')} 
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === 'kanban' ? 'bg-indigo-600 text-white shadow' : 'text-neutral-400 hover:text-white'}`}
+                            >Kanban</button>
+                            <button 
+                                onClick={() => setViewMode('list')} 
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${viewMode === 'list' ? 'bg-indigo-600 text-white shadow' : 'text-neutral-400 hover:text-white'}`}
+                            >List</button>
+                        </div>
+                        <div className="text-sm text-neutral-500">
+                            {enquiries.length} enquiries in pipeline
+                        </div>
                     </div>
                 </div>
 
-                {/* List / Table View */}
+                {viewMode === 'kanban' ? (
+                    <div className="flex-1 p-2 min-h-[500px]">
+                        <EnquiryKanban 
+                            enquiries={enquiries} 
+                            onEnquiryClick={(enq: Enquiry) => setSelectedEnquiry(enq)}
+                            onUpdateStage={handleUpdateStage}
+                        />
+                    </div>
+                ) : (
                 <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full text-sm text-left text-neutral-400">
                         <thead className="text-xs text-neutral-500 uppercase bg-neutral-900 border-b border-neutral-800">
@@ -200,7 +223,7 @@ export default function EnquiryList() {
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-1.5">
                                             <button
-                                                onClick={() => (window.location.href = `/dashboard/enquiries/${enquiry.id}`)}
+                                                onClick={() => setSelectedEnquiry(enquiry)}
                                                 className="p-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white rounded transition-colors border border-neutral-700"
                                                 title="View Details"
                                             >
@@ -213,6 +236,17 @@ export default function EnquiryList() {
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
+                                            
+                                            {enquiry.projectId && (
+                                                <button
+                                                    onClick={() => setAssignmentModal({ isOpen: true, enquiry })}
+                                                    className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors border border-indigo-500/20"
+                                                    title="Manage Project team"
+                                                >
+                                                    <UsersIcon className="w-4 h-4" />
+                                                </button>
+                                            )}
+
                                             <button
                                                 onClick={() => handleDelete(enquiry.id)}
                                                 disabled={!!enquiry.projectId}
@@ -236,125 +270,37 @@ export default function EnquiryList() {
                         </tbody>
                     </table>
                 </div>
+                )}
             </div>
 
-            {/* Edit Modal */}
+            <EnquiryDetailPanel 
+                enquiry={selectedEnquiry} 
+                isOpen={!!selectedEnquiry} 
+                onClose={() => setSelectedEnquiry(null)} 
+                onUpdate={fetchEnquiries}
+            />
+
+            {/* Edit Modal (using NewEnquiryModal) */}
             {editModal.isOpen && editModal.enquiry && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-neutral-900 border border-neutral-800 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/50">
-                            <div>
-                                <h3 className="text-xl font-bold">Edit Lead</h3>
-                                <p className="text-xs text-neutral-500 mt-1">{editModal.enquiry.enquiryId} • {editModal.enquiry.clientName}</p>
-                            </div>
-                            <button onClick={() => setEditModal({ isOpen: false, enquiry: null })} className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-500">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleUpdate} className="p-6 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-neutral-400 ml-1">Client Name</label>
-                                    <input
-                                        type="text"
-                                        value={editModal.enquiry.clientName}
-                                        onChange={(e) => setEditModal({ ...editModal, enquiry: { ...editModal.enquiry!, clientName: e.target.value } })}
-                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-neutral-600"
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-neutral-400 ml-1">Company Name</label>
-                                    <input
-                                        type="text"
-                                        value={editModal.enquiry.companyName || ''}
-                                        onChange={(e) => setEditModal({ ...editModal, enquiry: { ...editModal.enquiry!, companyName: e.target.value } })}
-                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-neutral-600"
-                                    />
-                                </div>
-                            </div>
+                <NewEnquiryModal 
+                    isEdit
+                    initialData={editModal.enquiry}
+                    onClose={() => setEditModal({ isOpen: false, enquiry: null })}
+                    onSuccess={() => {
+                        setEditModal({ isOpen: false, enquiry: null });
+                        fetchEnquiries();
+                    }}
+                />
+            )}
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-neutral-400 ml-1">Email</label>
-                                    <input
-                                        type="email"
-                                        value={editModal.enquiry.email}
-                                        onChange={(e) => setEditModal({ ...editModal, enquiry: { ...editModal.enquiry!, email: e.target.value } })}
-                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-neutral-600"
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-neutral-400 ml-1">Phone</label>
-                                    <input
-                                        type="text"
-                                        value={editModal.enquiry.phone || ''}
-                                        onChange={(e) => setEditModal({ ...editModal, enquiry: { ...editModal.enquiry!, phone: e.target.value } })}
-                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-neutral-600"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-neutral-400 ml-1">Est. Value ($)</label>
-                                    <input
-                                        type="number"
-                                        value={editModal.enquiry.estimatedValue || ''}
-                                        onChange={(e) => setEditModal({ ...editModal, enquiry: { ...editModal.enquiry!, estimatedValue: parseFloat(e.target.value) || 0 } })}
-                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-neutral-600 font-mono text-indigo-400"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-neutral-400 ml-1">Probability (%)</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={editModal.enquiry.probability || ''}
-                                        onChange={(e) => setEditModal({ ...editModal, enquiry: { ...editModal.enquiry!, probability: parseInt(e.target.value) || 0 } })}
-                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-neutral-600 font-mono text-green-400"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-neutral-400 ml-1">Pipeline Stage</label>
-                                <select
-                                    value={editModal.enquiry.stage}
-                                    onChange={(e) => setEditModal({ ...editModal, enquiry: { ...editModal.enquiry!, stage: e.target.value } })}
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none cursor-pointer"
-                                >
-                                    <option value="NEW">New Lead</option>
-                                    <option value="DISCOVERY_SENT">Discovery Sent</option>
-                                    <option value="DISCOVERY_SUBMITTED">Discovery Submitted</option>
-                                    <option value="REVIEW">Internal Review</option>
-                                    <option value="PROPOSAL">Proposal Phase</option>
-                                    <option value="NEGOTIATION">Negotiation</option>
-                                    <option value="APPROVED">Approved / Won</option>
-                                    <option value="DECLINED">Declined / Lost</option>
-                                </select>
-                            </div>
-
-                            <div className="pt-4 flex items-center gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setEditModal({ isOpen: false, enquiry: null })}
-                                    className="flex-1 px-6 py-3 rounded-xl border border-neutral-800 text-neutral-400 font-semibold hover:bg-neutral-800 transition-all"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
-                                >
-                                    Save Changes
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            {/* Partner Assignment Modal */}
+            {assignmentModal.isOpen && assignmentModal.enquiry?.projectId && (
+                <PartnerAssignmentModal 
+                    isOpen={assignmentModal.isOpen}
+                    onClose={() => setAssignmentModal({ isOpen: false, enquiry: null })}
+                    projectId={assignmentModal.enquiry.projectId}
+                    targetService={assignmentModal.enquiry.servicesRequested[0]}
+                />
             )}
         </div>
     );

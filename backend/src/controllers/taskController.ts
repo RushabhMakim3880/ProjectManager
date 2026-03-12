@@ -139,9 +139,40 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const getTasksByProject = async (req: Request, res: Response, next: NextFunction) => {
+export const getTasksByProject = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { projectId } = req.params;
+    const { role, userId } = req.user!;
     try {
+        // First check project access
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            include: { contributions: true }
+        });
+
+        if (!project) return next(new AppError('Project not found', 404));
+
+        // ACL Check
+        let hasAccess = false;
+        if (role === 'ADMIN') {
+            hasAccess = true;
+        } else if (role === 'CLIENT') {
+            hasAccess = project.clientId === userId;
+        } else if (role === 'PARTNER') {
+            const partner = await prisma.partner.findUnique({ where: { userId } });
+            if (partner) {
+                const isLead = [
+                    project.projectLeadId, project.techLeadId, project.commsLeadId,
+                    project.qaLeadId, project.salesOwnerId, project.salesPartnerId
+                ].includes(partner.id);
+                const isContributor = project.contributions.some((c: any) => c.partnerId === partner.id);
+                hasAccess = isLead || isContributor;
+            }
+        }
+
+        if (!hasAccess) {
+            return next(new AppError('Forbidden: Access to this project tasks is restricted', 403));
+        }
+
         const tasks = await prisma.task.findMany({
             where: { projectId },
             include: {
@@ -229,12 +260,38 @@ export const getTaskComments = async (req: Request, res: Response, next: NextFun
     }
 };
 
-export const getTaskStats = async (req: Request, res: Response, next: NextFunction) => {
+export const getTaskStats = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+        const { role, userId } = req.user!;
+        let filter: any = {};
+
+        if (role === 'CLIENT') {
+            filter = { project: { clientId: userId } };
+        } else if (role === 'PARTNER') {
+            const partner = await prisma.partner.findUnique({ where: { userId } });
+            if (!partner) return res.status(403).json({ error: 'Partner profile not found' });
+            
+            filter = {
+                OR: [
+                    { assignedPartnerId: partner.id },
+                    { project: {
+                        OR: [
+                            { projectLeadId: partner.id },
+                            { techLeadId: partner.id },
+                            { commsLeadId: partner.id },
+                            { qaLeadId: partner.id },
+                            { salesOwnerId: partner.id },
+                            { salesPartnerId: partner.id }
+                        ]
+                    }}
+                ]
+            };
+        }
+
         const [completed, pending, total] = await Promise.all([
-            prisma.task.count({ where: { status: 'DONE' } }),
-            prisma.task.count({ where: { status: { in: ['IN_PROGRESS', 'BACKLOG'] } } }),
-            prisma.task.count(),
+            prisma.task.count({ where: { ...filter, status: 'DONE' } }),
+            prisma.task.count({ where: { ...filter, status: { in: ['IN_PROGRESS', 'BACKLOG', 'REVIEW'] } } }),
+            prisma.task.count({ where: filter }),
         ]);
 
         res.json({ completed, pending, total });

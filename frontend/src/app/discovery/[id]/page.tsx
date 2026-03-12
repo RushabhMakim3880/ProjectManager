@@ -45,8 +45,12 @@ export default function DiscoveryFormPage() {
                     )
                 );
                 setActiveSections(matchedSections);
-            } catch (err) {
-                setError('Invalid or expired Discovery Link.');
+            } catch (err: any) {
+                const errorData = err.response?.data;
+                const errorMessage = typeof errorData === 'string' 
+                    ? errorData 
+                    : errorData?.message || errorData?.error || 'Invalid or expired Discovery Link.';
+                setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
             } finally {
                 setLoading(false);
             }
@@ -168,7 +172,7 @@ export default function DiscoveryFormPage() {
             <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
                 <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-2xl max-w-md w-full text-center">
                     <h2 className="text-xl font-bold text-red-500 mb-2">Error</h2>
-                    <p className="text-red-400/80">{error}</p>
+                    <p className="text-red-400/80">{typeof error === 'string' ? error : 'An unexpected error occurred'}</p>
                 </div>
             </div>
         );
@@ -225,7 +229,11 @@ export default function DiscoveryFormPage() {
             });
             setSuccess(true);
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to submit discovery form.');
+            const errorData = err.response?.data;
+            const errorMessage = typeof errorData === 'string' 
+                ? errorData 
+                : errorData?.message || errorData?.error || 'Failed to submit discovery form.';
+            setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
         } finally {
             setSubmitting(false);
         }

@@ -69,7 +69,11 @@ export default function InvitePartnerModal({ isOpen, onClose, onSuccess }: Invit
             setInviteResult(res.data);
             onSuccess();
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to send invitation');
+            const errorData = err.response?.data;
+            const errorMessage = typeof errorData === 'string' 
+                ? errorData 
+                : errorData?.message || errorData?.error || 'Failed to send invitation';
+            setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
         } finally {
             setLoading(false);
         }
@@ -123,7 +127,7 @@ export default function InvitePartnerModal({ isOpen, onClose, onSuccess }: Invit
                     {error && (
                         <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-sm flex items-center gap-3">
                             <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                            {error}
+                            {typeof error === 'string' ? error : 'An unexpected error occurred'}
                         </div>
                     )}
 

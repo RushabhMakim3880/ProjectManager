@@ -2,6 +2,8 @@ import { type Request, type Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { type AuthRequest } from '../middleware/authMiddleware.js';
 import { calculateFinancials } from '../services/contributionService.js';
+import { extractReceiptFlow } from '../flows/extract-receipt.js';
+
 
 export const getTransactions = async (req: Request, res: Response) => {
     const { projectId } = req.params;
@@ -77,3 +79,24 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+export const processReceipt = async (req: Request, res: Response) => {
+    const { fileBuffer, fileType } = req.body;
+
+    if (!fileBuffer || !fileType) {
+        return res.status(400).json({ error: 'Missing fileBuffer or fileType' });
+    }
+
+    try {
+        const result = await extractReceiptFlow({
+            fileBuffer,
+            fileType,
+        });
+
+        res.json(result);
+    } catch (error: any) {
+        console.error('[OCR_ERROR]', error);
+        res.status(500).json({ error: error.message || 'Failed to process receipt' });
+    }
+};
+

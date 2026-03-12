@@ -26,7 +26,6 @@ const TABS = [
     { id: 'timeline', label: 'Timeline', icon: Calendar },
     { id: 'scope', label: 'Scope', icon: FileText },
     { id: 'team', label: 'Team', icon: Shield },
-    { id: 'weights', label: 'Weights', icon: Activity },
     { id: 'logging', label: 'Tracking', icon: Clock },
     { id: 'controls', label: 'Controls', icon: Lock },
 ];
@@ -83,17 +82,8 @@ export default function CreateProjectModal({ onClose, initialData }: { onClose: 
         qaLeadId: '',
         salesOwnerId: '',
 
-        // Weights & Tracking
+        // Tracking
         enableContributionTracking: true,
-        weights: {
-            acquisition: 10,
-            planning: 15,
-            execution: 40,
-            testing: 15,
-            communication: 10,
-            delivery: 10
-        },
-        lockWeights: false,
         enableTaskLogging: true,
         effortScale: 'FIBONACCI',
         timeTrackingEnabled: false,
@@ -131,7 +121,6 @@ export default function CreateProjectModal({ onClose, initialData }: { onClose: 
                         endDate: initialData.endDate ? new Date(initialData.endDate).toISOString().split('T')[0] : '',
                         internalDeadline: initialData.internalDeadline ? new Date(initialData.internalDeadline).toISOString().split('T')[0] : '',
                         clientDeadline: initialData.clientDeadline ? new Date(initialData.clientDeadline).toISOString().split('T')[0] : '',
-                        weights: typeof initialData.weights === 'string' ? JSON.parse(initialData.weights) : (initialData.weights || formData.weights),
                         milestones: initialData.milestones?.map((m: any) => ({
                             ...m,
                             dueDate: m.dueDate ? new Date(m.dueDate).toISOString().split('T')[0] : ''
@@ -235,8 +224,8 @@ export default function CreateProjectModal({ onClose, initialData }: { onClose: 
                                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                 >
                                     <option value="">Select Service...</option>
-                                    {PROJECT_SERVICES[formData.projectType].map((service: string) => (
-                                        <option key={service} value={service}>{service}</option>
+                                    {PROJECT_SERVICES[formData.projectType].map((service) => (
+                                        <option key={service.id} value={service.name}>{service.name}</option>
                                     ))}
                                 </select>
                             </div>
@@ -442,33 +431,7 @@ export default function CreateProjectModal({ onClose, initialData }: { onClose: 
                         ))}
                     </div>
                 );
-            case 'weights':
-                return (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                        <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl flex items-center gap-3">
-                            <AlertTriangle className="w-5 h-5 text-amber-500" />
-                            <p className="text-xs text-neutral-400">Weights define how profit is distributed. Total must equal 100%.</p>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                            {Object.entries(formData.weights).map(([cat, weight]) => (
-                                <div key={cat} className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-neutral-500 capitalize">{cat}</label>
-                                    <div className="relative">
-                                        <input
-                                            type="number" className="input-field pr-10"
-                                            value={weight}
-                                            onChange={(e) => setFormData({
-                                                ...formData,
-                                                weights: { ...formData.weights, [cat]: Number(e.target.value) }
-                                            })}
-                                        />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 text-sm">%</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
+
             case 'logging':
                 return (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
