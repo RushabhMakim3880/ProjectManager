@@ -70,6 +70,18 @@ export default function LeadHunterPage() {
                     const checkRes = await api.post('/leads/check-duplicates', { websites });
                     const statusMap: Record<string, any> = {};
                     checkRes.data.forEach((item: any) => { statusMap[item.website] = item; });
+
+                    // Also check sessionStorage
+                    const savedStr = sessionStorage.getItem('saved_leads');
+                    if (savedStr) {
+                        const savedLeads = JSON.parse(savedStr);
+                        savedLeads.forEach((l: any) => {
+                            if (websites.includes(l.website)) {
+                                statusMap[l.website] = { exists: true, status: l.status };
+                            }
+                        });
+                    }
+
                     setExistingStatus(statusMap);
                 }
             } catch { /* duplicate check is non-critical */ }
@@ -87,6 +99,16 @@ export default function LeadHunterPage() {
         setSaving(lead.website);
         try {
             await api.post('/leads/save', lead);
+            
+            // Fallback for Vercel: save to sessionStorage
+            const savedStr = sessionStorage.getItem('saved_leads');
+            const savedLeads = savedStr ? JSON.parse(savedStr) : [];
+            const newLead = { ...lead, id: `local-${Date.now()}`, status: 'DISCOVERED', createdAt: new Date().toISOString() };
+            if (!savedLeads.find((l: any) => l.website === lead.website)) {
+                savedLeads.push(newLead);
+                sessionStorage.setItem('saved_leads', JSON.stringify(savedLeads));
+            }
+
             setExistingStatus(prev => ({
                 ...prev,
                 [lead.website]: { exists: true, status: 'DISCOVERED' }
@@ -103,6 +125,20 @@ export default function LeadHunterPage() {
         setImporting(lead.name);
         try {
             await api.post('/leads/import', lead);
+
+            // Fallback for Vercel: save to sessionStorage
+            const savedStr = sessionStorage.getItem('saved_leads');
+            const savedLeads = savedStr ? JSON.parse(savedStr) : [];
+            const newLead = { ...lead, id: `local-${Date.now()}`, status: 'CONVERTED', createdAt: new Date().toISOString() };
+            if (!savedLeads.find((l: any) => l.website === lead.website)) {
+                savedLeads.push(newLead);
+                sessionStorage.setItem('saved_leads', JSON.stringify(savedLeads));
+            } else {
+                const target = savedLeads.find((l: any) => l.website === lead.website);
+                target.status = 'CONVERTED';
+                sessionStorage.setItem('saved_leads', JSON.stringify(savedLeads));
+            }
+
             toast.success(`${lead.name} successfully integrated into CRM.`);
             setExistingStatus(prev => ({
                 ...prev,

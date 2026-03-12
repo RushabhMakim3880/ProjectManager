@@ -70,7 +70,19 @@ export default function OutreachManagerPage() {
                 api.get('/leads/templates')
             ]);
 
-            setLeads(leadsRes.data);
+            // Combine API leads with sessionStorage leads
+            const apiLeads = leadsRes.data || [];
+            const savedStr = sessionStorage.getItem('saved_leads');
+            const localLeads = savedStr ? JSON.parse(savedStr) : [];
+            
+            const uniqueLeads = [...apiLeads];
+            localLeads.forEach((localLead: any) => {
+                if (!uniqueLeads.find((l: any) => l.website === localLead.website)) {
+                    uniqueLeads.push(localLead);
+                }
+            });
+
+            setLeads(uniqueLeads);
             setTemplates(templatesRes.data);
         } catch (error) {
             console.error('Error fetching data:', error);
