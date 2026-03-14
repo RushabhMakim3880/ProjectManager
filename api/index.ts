@@ -361,31 +361,30 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
 });
 
 // ─── BRIDGE ROUTERS (for all other routes) ───────────────────────────────────
-const bridgeRouter = (routePath: string, importPath: string) =>
-    app.use(routePath, async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const mod = await import(importPath);
-            const router = mod.default || mod;
-            router(req, res, next);
-        } catch (err: any) {
-            console.error(`BRIDGE_FAILURE [${routePath}]:`, err.message);
-            res.status(500).json({ error: `Router failed: ${routePath}`, message: err.message });
-        }
-    });
+const handleDynamicRoute = async (importPromise: Promise<any>, req: Request, res: Response, next: NextFunction, routePath: string) => {
+    try {
+        const mod = await importPromise;
+        const router = mod.default || mod;
+        router(req, res, next);
+    } catch (err: any) {
+        console.error(`BRIDGE_FAILURE [${routePath}]:`, err.message);
+        res.status(500).json({ error: `Router failed: ${routePath}`, message: err.message });
+    }
+};
 
-bridgeRouter('/api/auth', '../backend/src/routes/authRoutes.js');
-bridgeRouter('/api/projects', '../backend/src/routes/projectRoutes.js');
-bridgeRouter('/api/partners', '../backend/src/routes/partnerRoutes.js');
-bridgeRouter('/api/agreements', '../backend/src/routes/agreementRoutes.js');
-bridgeRouter('/api/audit', '../backend/src/routes/auditRoutes.js');
-bridgeRouter('/api/invitations', '../backend/src/routes/invitationRoutes.js');
-bridgeRouter('/api/system', '../backend/src/routes/systemRoutes.js');
-bridgeRouter('/api/payouts', '../backend/src/routes/payoutRoutes.js');
-bridgeRouter('/api/finance', '../backend/src/routes/financeRoutes.js');
-bridgeRouter('/api/enquiries', '../backend/src/routes/enquiryRoutes.js');
-bridgeRouter('/api/transactions', '../backend/src/routes/transactionRoutes.js');
-bridgeRouter('/api/analytics', '../backend/src/routes/analyticsRoutes.js');
-bridgeRouter('/api/leads', '../backend/src/routes/leadRoutes.js');
+app.use('/api/auth', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/authRoutes.js'), req, res, next, '/api/auth'));
+app.use('/api/projects', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/projectRoutes.js'), req, res, next, '/api/projects'));
+app.use('/api/partners', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/partnerRoutes.js'), req, res, next, '/api/partners'));
+app.use('/api/agreements', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/agreementRoutes.js'), req, res, next, '/api/agreements'));
+app.use('/api/audit', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/auditRoutes.js'), req, res, next, '/api/audit'));
+app.use('/api/invitations', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/invitationRoutes.js'), req, res, next, '/api/invitations'));
+app.use('/api/system', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/systemRoutes.js'), req, res, next, '/api/system'));
+app.use('/api/payouts', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/payoutRoutes.js'), req, res, next, '/api/payouts'));
+app.use('/api/finance', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/financeRoutes.js'), req, res, next, '/api/finance'));
+app.use('/api/enquiries', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/enquiryRoutes.js'), req, res, next, '/api/enquiries'));
+app.use('/api/transactions', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/transactionRoutes.js'), req, res, next, '/api/transactions'));
+app.use('/api/analytics', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/analyticsRoutes.js'), req, res, next, '/api/analytics'));
+app.use('/api/leads', (req, res, next) => handleDynamicRoute(import('../backend/src/routes/leadRoutes.js'), req, res, next, '/api/leads'));
 
 // ─── SEED ADMIN ───────────────────────────────────────────────────────────────
 app.get('/api/debug/seed-admin', async (_req: Request, res: Response) => {
