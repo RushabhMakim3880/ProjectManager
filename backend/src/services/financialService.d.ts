@@ -29,7 +29,7 @@ export declare class FinancialService {
         NDP: number;
         basePool: number;
         performancePool: number;
-        partners: {
+        partnerShares: {
             baseShare: number;
             performanceShare: number;
             finalPayout: number;
@@ -55,7 +55,7 @@ export declare class FinancialService {
             NDP: number;
             basePool: number;
             performancePool: number;
-            partners: {
+            partnerShares: {
                 baseShare: number;
                 performanceShare: number;
                 finalPayout: number;

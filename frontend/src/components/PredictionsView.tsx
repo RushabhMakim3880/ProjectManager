@@ -70,7 +70,8 @@ export default function PredictionsView({ projectId, project }: PredictionsViewP
         );
     }
 
-    const { predictedIncome, predictedGPR, predictions } = data;
+    const { predictedIncome = 0, predictedGPR = 0, predictions = {} as any } = data || {};
+    const partnerShares = predictions.partnerShares || [];
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -94,7 +95,7 @@ export default function PredictionsView({ projectId, project }: PredictionsViewP
                 {[
                     { label: 'Predicted Total Income', value: predictedIncome, icon: Target, color: 'indigo', desc: 'Max of Budget vs Actual' },
                     { label: 'Predicted GPR', value: predictedGPR, icon: DollarSign, color: 'emerald', desc: 'Income - Current OpEx' },
-                    { label: 'Net Profit Reservoir', value: predictions.NDP, icon: PieChart, color: 'amber', desc: '85% Post-Reserves' },
+                    { label: 'Net Profit Reservoir', value: predictions?.NDP || 0, icon: PieChart, color: 'amber', desc: '85% Post-Reserves' },
                 ].map((stat, i) => (
                     <div key={i} className="glass-card p-6 border-neutral-800 bg-neutral-900/40 relative overflow-hidden group">
                         <div className={`absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700`}>
@@ -134,7 +135,7 @@ export default function PredictionsView({ projectId, project }: PredictionsViewP
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-800/50">
-                            {predictions.partnerShares.map((p) => {
+                            {partnerShares.map((p: any) => {
                                 const currentAdvances = (project.advances || [])
                                     .filter((a: any) => a.partnerId === p.id)
                                     .reduce((sum: number, a: any) => sum + a.amount, 0);

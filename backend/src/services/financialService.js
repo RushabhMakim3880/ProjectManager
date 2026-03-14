@@ -46,7 +46,7 @@ export class FinancialService {
             NDP,
             basePool,
             performancePool,
-            partners: partnerResults
+            partnerShares: partnerResults
         };
     }
     /**
