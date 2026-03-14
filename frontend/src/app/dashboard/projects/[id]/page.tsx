@@ -42,6 +42,7 @@ import ContributionList from '@/components/ContributionList';
 import FinancialVisualizer from '@/components/FinancialVisualizer';
 import TaskManager from '@/components/TaskManager';
 import FinancialBreakdown from '@/components/FinancialBreakdown';
+import PredictionsView from '@/components/PredictionsView';
 import ProjectLedger from '@/components/ProjectLedger';
 import CreateProjectModal from '@/components/CreateProjectModal';
 import DocumentManager from '@/components/DocumentManager';
@@ -256,6 +257,7 @@ export default function ProjectDetailsPage() {
                     { id: 'client', label: 'Engagement', icon: Users },
                     { id: 'team', label: 'Team & Logic', icon: Settings },
                     { id: 'earnings', label: 'Financial Breakdown', icon: DollarSign },
+                    { id: 'predictions', label: 'Predictions', icon: Target },
                     { id: 'ledger', label: 'Payments & Ledger', icon: Receipt },
                     { id: 'documents', label: 'Documents', icon: FileText },
                 ].map((tab) => (
@@ -585,6 +587,10 @@ export default function ProjectDetailsPage() {
 
                     {activeTab === 'earnings' && (
                         <FinancialBreakdown project={project} totalPartnerCount={totalPartnerCount} allPartners={allPartners} />
+                    )}
+
+                    {activeTab === 'predictions' && (
+                        <PredictionsView projectId={id as string} project={project} />
                     )}
 
                     {activeTab === 'ledger' && (
