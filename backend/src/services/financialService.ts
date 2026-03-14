@@ -3,11 +3,14 @@ import { prisma } from '../lib/prisma.js';
 export interface FinancialMetrics {
     totalValue: number;
     actualBalance: number;
+    operationalExpenses: number;
+    partnerAdvances: number;
     businessReserve: number;
     religiousAllocation: number;
     netDistributable: number;
     basePool: number;
     performancePool: number;
+    gpr: number; // Gross Project Revenue (Income - Operational Expenses)
 }
 
 export class FinancialService {
@@ -69,6 +72,7 @@ export class FinancialService {
 
     /**
      * Recalculates and saves financial records for a project.
+     * Differentiates between operational expenses and partner advances (draws).
      */
     static async recalculateProjectFinancials(projectId: string) {
         const project = await prisma.project.findUnique({
@@ -83,10 +87,25 @@ export class FinancialService {
 
         if (!project) throw new Error('Project not found');
 
-        // Calculate actual balance (GPR) from ledger
-        const GPR = project.transactions.reduce((acc: number, t: any) => {
-            return t.type === 'INCOME' ? acc + t.amount : acc - t.amount;
-        }, 0);
+        // Calculate metrics from transactions
+        // Operational expenses exclude partner advances/draws
+        const totalIncome = project.transactions
+            .filter((t: any) => t.type === 'INCOME')
+            .reduce((acc: number, t: any) => acc + t.amount, 0);
+        
+        const operationalExpenses = project.transactions
+            .filter((t: any) => t.type === 'EXPENSE' && !t.category.toLowerCase().includes('advance') && !t.category.toLowerCase().includes('draw'))
+            .reduce((acc: number, t: any) => acc + t.amount, 0);
+
+        const partnerAdvances = project.transactions
+            .filter((t: any) => t.type === 'EXPENSE' && (t.category.toLowerCase().includes('advance') || t.category.toLowerCase().includes('draw')))
+            .reduce((acc: number, t: any) => acc + t.amount, 0);
+
+        // GPR = Income - Operational Expenses
+        const GPR = totalIncome - operationalExpenses;
+
+        // Actual Balance (Funds currently in hand)
+        const actualBalance = totalIncome - operationalExpenses - partnerAdvances;
 
         // Prepare partners for deterministic module
         const partnersForCalc = project.contributions.map((c: any) => ({
@@ -95,15 +114,13 @@ export class FinancialService {
             contributionPercent: c.percentage
         }));
 
-        // Get total partner count for base pay distribution (ALL partners, not just contributors)
-        const totalPartnerCount = await prisma.partner.count();
+        const totalPartnerCount = await prisma.partner.count({ where: { user: { isActive: true } } });
 
-        // If no contributions exist, we can't calculate profit sharing accurately
         if (partnersForCalc.length === 0) {
             return await prisma.financial.upsert({
                 where: { projectId },
-                update: { actualBalance: GPR, totalValue: project.totalValue },
-                create: { projectId, actualBalance: GPR, totalValue: project.totalValue }
+                update: { actualBalance, totalValue: project.totalValue, netProfit: GPR },
+                create: { projectId, actualBalance, totalValue: project.totalValue, netProfit: GPR }
             });
         }
 
@@ -114,24 +131,76 @@ export class FinancialService {
             where: { projectId },
             update: {
                 totalValue: project.totalValue,
-                actualBalance: GPR,
+                actualBalance: actualBalance,
                 businessReserve: metrics.businessReserve,
                 religiousAllocation: metrics.religiousAllocation,
                 netDistributable: metrics.NDP,
                 basePool: metrics.basePool,
                 performancePool: metrics.performancePool,
+                netProfit: GPR,
             },
             create: {
                 projectId,
                 totalValue: project.totalValue,
-                actualBalance: GPR,
+                actualBalance: actualBalance,
                 businessReserve: metrics.businessReserve,
                 religiousAllocation: metrics.religiousAllocation,
                 netDistributable: metrics.NDP,
                 basePool: metrics.basePool,
                 performancePool: metrics.performancePool,
+                netProfit: GPR,
             }
         });
+    }
+
+    /**
+     * Calculates predicted profit shares based on project budget.
+     */
+    static async calculatePredictions(projectId: string) {
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+            include: {
+                transactions: true,
+                contributions: {
+                    include: { partner: { include: { user: true } } }
+                }
+            }
+        });
+
+        if (!project) throw new Error('Project not found');
+
+        // Predicted Income = Max(Total Value, Actual Income)
+        const currentIncome = project.transactions
+            .filter((t: any) => t.type === 'INCOME')
+            .reduce((acc: number, t: any) => acc + t.amount, 0);
+        
+        const predictedIncome = Math.max(project.totalValue || 0, currentIncome);
+
+        // Current Operational Expenses
+        const currentOpExpenses = project.transactions
+            .filter((t: any) => t.type === 'EXPENSE' && !t.category.toLowerCase().includes('advance') && !t.category.toLowerCase().includes('draw'))
+            .reduce((acc: number, t: any) => acc + t.amount, 0);
+
+        // Predicted GPR
+        const predictedGPR = predictedIncome - currentOpExpenses;
+
+        const totalPartnerCount = await prisma.partner.count({ where: { user: { isActive: true } } });
+        
+        const partnersForCalc = project.contributions.map((c: any) => ({
+            id: c.partnerId,
+            name: c.partner.user.name,
+            contributionPercent: c.percentage
+        }));
+
+        if (partnersForCalc.length === 0) return null;
+
+        const predictions = this.calculateProfitSharing(predictedGPR, partnersForCalc, totalPartnerCount);
+
+        return {
+            predictedIncome,
+            predictedGPR,
+            predictions
+        };
     }
 
     /**

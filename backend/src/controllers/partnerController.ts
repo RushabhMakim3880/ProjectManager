@@ -232,8 +232,8 @@ export const getPartnerWorkload = async (req: Request, res: Response) => {
             }
         });
 
-        const workload = partners.map(partner => {
-            const assigned = activeProjects.filter(p => 
+        const workload = partners.map((partner: any) => {
+            const assigned = activeProjects.filter((p: any) => 
                 p.projectLeadId === partner.id || 
                 p.techLeadId === partner.id || 
                 p.commsLeadId === partner.id || 
@@ -244,9 +244,9 @@ export const getPartnerWorkload = async (req: Request, res: Response) => {
                 id: partner.id,
                 name: partner.user.displayName || partner.user.name,
                 email: partner.user.email,
-                skills: partner.skills ? partner.skills.split(',').map(s => s.trim()) : [],
+                skills: partner.skills ? partner.skills.split(',').map((s: string) => s.trim()) : [],
                 activeProjectsCount: assigned.length,
-                projects: assigned.map(p => ({ id: p.id, name: p.name }))
+                projects: assigned.map((p: any) => ({ id: p.id, name: p.name }))
             };
         });
 

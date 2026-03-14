@@ -5,4 +5,5 @@ export declare const getPartnerById: (req: Request, res: Response) => Promise<Re
 export declare const updatePartner: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const deletePartner: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 export declare const createPartner: (req: AuthRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+export declare const getPartnerWorkload: (req: Request, res: Response) => Promise<void>;
 //# sourceMappingURL=partnerController.d.ts.map

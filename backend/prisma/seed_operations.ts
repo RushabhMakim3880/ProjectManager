@@ -58,9 +58,9 @@ async function main() {
             totalValue: 500000,
             startDate: new Date(),
             status: 'ACTIVE',
-            projectLeadId: createdPartners[0].id, // John
-            techLeadId: createdPartners[2].id,    // Mike
-            commsLeadId: createdPartners[1].id,   // Jane
+            projectLeadId: (createdPartners[0]?.id || null) as any, // John
+            techLeadId: (createdPartners[2]?.id || null) as any,    // Mike
+            commsLeadId: (createdPartners[1]?.id || null) as any,   // Jane
         },
         {
             name: 'Beta Mobile App',
@@ -68,19 +68,19 @@ async function main() {
             totalValue: 750000,
             startDate: new Date(),
             status: 'ACTIVE',
-            projectLeadId: createdPartners[0].id, // John (Overloading John)
-            techLeadId: createdPartners[0].id,    // John
-            commsLeadId: createdPartners[1].id,   // Jane
-        },
+            projectLeadId: (createdPartners[0]?.id || null) as any, // John (Overloading John)
+            techLeadId: (createdPartners[0]?.id || null) as any,    // John
+            commsLeadId: (createdPartners[1]?.id || null) as any,   // Jane
+        } as any,
         {
             name: 'Gamma Security Audit',
             clientName: 'Gamma Security',
             totalValue: 200000,
             startDate: new Date(),
             status: 'ACTIVE',
-            projectLeadId: createdPartners[2].id, // Mike
-            techLeadId: createdPartners[2].id,    // Mike
-        }
+            projectLeadId: (createdPartners[2]?.id || null) as any, // Mike
+            techLeadId: (createdPartners[2]?.id || null) as any,    // Mike
+        } as any
     ];
 
     for (const p of projects) {

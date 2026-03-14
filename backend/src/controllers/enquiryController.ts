@@ -480,12 +480,16 @@ export const generateDraftEmail = async (req: Request, res: Response, next: Next
         const servicesRequested = JSON.parse(enquiry.servicesRequested || '[]');
 
         const draft = await generateColdEmailFlow({
-            clientName: enquiry.clientName,
-            companyName: enquiry.companyName || undefined,
-            servicesRequested,
-            projectDescription: discoveryData.projectDescription || '',
-            senderName: (req as any).user?.displayName || (req as any).user?.name || 'Managing Director',
-            agencyName: 'Stitch Digital'
+            template: enquiry.emailTemplate || '',
+            subject: enquiry.emailSubject || '',
+            lead: {
+                companyName: enquiry.companyName || '',
+                clientName: enquiry.clientName as string,
+                industry: enquiry.industry || '',
+                servicesRequested: enquiry.servicesRequested || '',
+                website: enquiry.website || '',
+            },
+            senderName: (req as any).user?.displayName || (req as any).user?.name || 'Managing Director'
         });
 
         res.json(draft);

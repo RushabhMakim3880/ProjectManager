@@ -1,6 +1,7 @@
 import { type Request, type Response } from 'express';
 import { prisma } from '../lib/prisma.js';
-import { calculateProjectContributions, calculateFinancials } from '../services/contributionService.js';
+import { calculateProjectContributions } from '../services/contributionService.js';
+import { FinancialService } from '../services/financialService.js';
 import { notifyPayoutFinalized } from '../services/emailService.js';
 
 export const finalizeProject = async (req: Request, res: Response) => {
@@ -16,9 +17,9 @@ export const finalizeProject = async (req: Request, res: Response) => {
         if (!project) return res.status(404).json({ error: 'Project not found' });
         if (project.status === 'COMPLETED' || project.isLocked) return res.status(400).json({ error: 'Project is already finalized or completed' });
 
-        // 1. Recalculate everything one last time
+        // 1. Recalculate everything one last time using the new deterministic logic
         const contributions = await calculateProjectContributions(projectId as string);
-        const financials = await calculateFinancials(projectId as string);
+        const financials = await FinancialService.recalculateProjectFinancials(projectId as string);
 
         // 2. Lock the project and mark it as COMPLETED
         await prisma.project.update({
@@ -98,7 +99,7 @@ export const finalizeProject = async (req: Request, res: Response) => {
         res.json({ message: 'Project finalized and payouts generated, adjusting for advances.', payouts: payoutData });
 
         // Fire-and-forget email notification to all partners
-        notifyPayoutFinalized(project, payoutData.map(p => ({
+        notifyPayoutFinalized(project, payoutData.map((p: any) => ({
             ...p,
             amount: p.totalPayout
         }))).catch(() => { });
@@ -212,27 +213,34 @@ export const getAdvances = async (req: Request, res: Response) => {
     }
 };
 
+export const getProjectPredictions = async (req: Request, res: Response) => {
+    const { projectId } = req.params;
+    if (!projectId) return res.status(400).json({ error: 'Project ID required' });
+
+    try {
+        const predictions = await FinancialService.calculatePredictions(projectId as string);
+        if (!predictions) {
+            return res.status(404).json({ error: 'No predictions available. Ensure contributions are set.' });
+        }
+        res.json(predictions);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error while fetching predictions' });
+    }
+};
+
 export const getPayouts = async (req: Request, res: Response) => {
     try {
         const payouts = await prisma.payout.findMany({
             include: {
-                project: {
-                    select: { name: true }
-                },
-                partner: {
-                    include: {
-                        user: {
-                            select: { name: true }
-                        }
-                    }
-                }
+                project: { select: { name: true } },
+                partner: { include: { user: { select: { name: true } } } }
             },
-            orderBy: {
-                createdAt: 'desc'
-            }
+            orderBy: { createdAt: 'desc' }
         });
         res.json(payouts);
     } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        console.error(error);
+        res.status(500).json({ error: 'Server error fetching payouts' });
     }
 };
