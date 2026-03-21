@@ -244,7 +244,7 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                                     <span className="text-sm font-black text-amber-400">₹{sharmadiyaSethAllocation.toLocaleString()}</span>
                                 </div>
 
-                                <div className={`p-3 rounded-xl border ${totalFaithSpent > religiousAllocation ? 'bg-amber-500/10 border-amber-500/20' : 'bg-neutral-900/50 border-neutral-800'}`}>
+                                <div className={`p-3 rounded-xl border ${totalFaithSpent > sharmadiyaSethAllocation ? 'bg-amber-500/10 border-amber-500/20' : 'bg-neutral-900/50 border-neutral-800'}`}>
                                     <div className="flex justify-between items-center mb-1.5">
                                         <span className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Realized Spending</span>
                                         <span className={`text-[10px] font-black ${totalFaithSpent > sharmadiyaSethAllocation ? 'text-rose-400' : 'text-neutral-400'}`}>
@@ -254,13 +254,13 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                                     <div className="h-1 w-full bg-neutral-800 rounded-full overflow-hidden mb-2">
                                         <motion.div
                                             initial={{ width: 0 }}
-                                            animate={{ width: `${Math.min((totalFaithSpent / religiousAllocation) * 100, 100)}%` }}
-                                            className={`h-full ${totalFaithSpent > religiousAllocation ? 'bg-amber-500' : 'bg-neutral-600'}`}
+                                            animate={{ width: `${Math.min((totalFaithSpent / sharmadiyaSethAllocation) * 100, 100)}%` }}
+                                            className={`h-full ${totalFaithSpent > sharmadiyaSethAllocation ? 'bg-amber-500' : 'bg-neutral-600'}`}
                                         />
                                     </div>
-                                    {totalFaithSpent > religiousAllocation && (
+                                    {totalFaithSpent > sharmadiyaSethAllocation && (
                                         <div className="flex items-center gap-1.5 text-[8px] font-black text-amber-500 uppercase tracking-tighter">
-                                            <Scale className="w-2.5 h-2.5" /> Over-Allocated: ₹{(totalFaithSpent - religiousAllocation).toLocaleString()}
+                                            <Scale className="w-2.5 h-2.5" /> Over-Allocated: ₹{(totalFaithSpent - sharmadiyaSethAllocation).toLocaleString()}
                                         </div>
                                     )}
                                 </div>
