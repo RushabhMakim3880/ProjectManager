@@ -147,7 +147,7 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                     { label: 'Total Received', value: totalIncome, icon: DollarSign, color: 'indigo', desc: 'Gross Cash Inflow' },
                     { label: 'Total Expenses', value: totalExpenses, icon: TrendingDown, color: 'rose', desc: 'Operating Costs' },
                     { label: 'Actual Balance', value: actualBalance, icon: Scale, color: 'amber', desc: 'Funds In-Hand' },
-                    { label: 'Net Profit Pool', value: netDistributable, icon: Wallet, color: 'emerald', desc: '85% Distributable' },
+                    { label: 'Net Profit Pool', value: netDistributable, icon: Wallet, color: 'emerald', desc: '80% Distributable' },
                 ].map((stat, i) => (
                     <div key={i} className={`relative group overflow-hidden glass-card p-5 border-${stat.color}-500/20 bg-${stat.color}-500/5 hover:bg-${stat.color}-500/10 transition-all duration-500`}>
                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">

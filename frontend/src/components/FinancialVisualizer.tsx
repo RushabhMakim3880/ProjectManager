@@ -16,8 +16,8 @@ interface Financials {
 export default function FinancialVisualizer({ financials }: { financials: Financials }) {
     const pools = [
         { name: 'Business (10%)', value: financials.businessReserve, color: 'bg-indigo-500' },
-        { name: 'Religious (5%)', value: financials.religiousAllocation, color: 'bg-amber-500' },
-        { name: 'Partners (85%)', value: financials.netDistributable, color: 'bg-emerald-500' },
+        { name: 'Sharmadiya Seth (10%)', value: financials.religiousAllocation, color: 'bg-amber-500' },
+        { name: 'Partners (80%)', value: financials.netDistributable, color: 'bg-emerald-500' },
     ];
 
     return (

@@ -11,7 +11,8 @@ import {
     CreditCard,
     DollarSign,
     Target,
-    BarChart3
+    BarChart3,
+    Shield
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -104,8 +105,8 @@ export default function DashboardPage() {
     }, []);
 
     const businessReserve = stats.revenueMTD * 0.1;
-    const religiousSurcharge = stats.revenueMTD * 0.05;
-    const netDistributable = stats.revenueMTD - businessReserve - religiousSurcharge;
+    const sharmadiyaSethAllocation = stats.revenueMTD * 0.1;
+    const netDistributable = stats.revenueMTD - businessReserve - sharmadiyaSethAllocation;
 
     const statCards = [
         { name: 'MTD Revenue', value: `₹${stats.revenueMTD.toLocaleString('en-IN')}`, icon: DollarSign, iconColor: 'text-emerald-400', bg: 'bg-emerald-500/10', glow: 'shadow-[0_0_20px_rgba(16,185,129,0.15)]' },
@@ -261,8 +262,10 @@ export default function DashboardPage() {
                                 <span className="text-emerald-400 font-medium">₹{businessReserve.toLocaleString('en-IN')}</span>
                             </div>
                             <div className="flex items-center justify-between text-sm p-3 rounded-lg bg-white/5 border border-white/5">
-                                <span className="text-neutral-400 tracking-tight">Religious Surcharge (5%)</span>
-                                <span className="text-indigo-400 font-medium">₹{religiousSurcharge.toLocaleString('en-IN')}</span>
+                                <span className="text-amber-400 font-medium flex items-center gap-1.5">
+                                    <Shield className="w-3.5 h-3.5" /> Sharmadiya Seth (10%)
+                                </span>
+                                <span className="text-amber-400 font-medium">₹{sharmadiyaSethAllocation.toLocaleString('en-IN')}</span>
                             </div>
                             <div className="h-px bg-white/10 my-4" />
                             <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]">

@@ -383,7 +383,7 @@ export default function ProjectLedger({ projectId, onUpdate }: ProjectLedgerProp
                                                 >
                                                     <option value="GENERAL">Operational Expense</option>
                                                     <option value="BUSINESS_GROWTH">Strategic Re-investment</option>
-                                                    <option value="RELIGIOUS">Spiritual Contribution (FAITH)</option>
+                                                    <option value="RELIGIOUS">Sharmadiya Seth Allocation</option>
                                                     <option value="CHARITY">Philanthropy / Social Impact</option>
                                                     <option value="OTHER">Specific Classification</option>
                                                 </select>

@@ -282,10 +282,10 @@ export default function ProjectDetailsPage() {
                             <FinancialVisualizer financials={project.financialRecords?.[0] || {
                                 totalValue: project.totalValue,
                                 businessReserve: project.totalValue * 0.1,
-                                religiousAllocation: project.totalValue * 0.05,
-                                netDistributable: project.totalValue * 0.85,
-                                basePool: project.totalValue * 0.85 * 0.2,
-                                performancePool: project.totalValue * 0.85 * 0.8
+                                religiousAllocation: project.totalValue * 0.1,
+                                netDistributable: project.totalValue * 0.8,
+                                basePool: project.totalValue * 0.8 * 0.2,
+                                performancePool: project.totalValue * 0.8 * 0.8
                             }} />
 
                             <div className="glass-card overflow-hidden">
