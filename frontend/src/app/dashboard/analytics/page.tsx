@@ -138,19 +138,29 @@ export default function AnalyticsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="w-full max-w-[120px] h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-                                                <div 
-                                                    className="h-full bg-gradient-to-r from-indigo-500 to-blue-400 rounded-full" 
-                                                    style={{ width: `${Math.min(partner.taskCount * 10, 100)}%` }} 
-                                                />
+                                            <div className="flex flex-col gap-1.5">
+                                                <div className="w-full max-w-[120px] h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className="h-full bg-gradient-to-r from-indigo-500 to-blue-400 rounded-full" 
+                                                        style={{ width: `${Math.min(partner.taskCount * 10, 100)}%` }} 
+                                                    />
+                                                </div>
+                                                <p className="text-[9px] text-neutral-500 font-bold uppercase">{partner.taskCount} Units Completed</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <p className="text-sm font-black text-white italic">₹{partner.totalEarnings.toLocaleString()}</p>
+                                            <div className="flex flex-col items-end">
+                                                <p className="text-sm font-black text-white italic">₹{partner.totalEarnings.toLocaleString()}</p>
+                                                <div className="flex gap-2 text-[8px] font-black uppercase tracking-tighter">
+                                                    <span className="text-emerald-500/80">Paid: ₹{partner.paidEarnings?.toLocaleString() ?? 0}</span>
+                                                    <span className="text-amber-500/80">Accrued: ₹{partner.accruedEarnings?.toLocaleString() ?? 0}</span>
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
+
                         </table>
                     </div>
                 </div>
@@ -203,27 +213,33 @@ export default function AnalyticsPage() {
                 </div>
                 
                 <div className="h-64 w-full flex items-end gap-2 px-2">
-                    {/* Simulated Chart Bars */}
-                    {[40, 60, 45, 80, 55, 90, 70, 85, 65, 100, 75, 95].map((h, i) => (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-2 group cursor-crosshair">
-                            <div className="w-full relative flex items-end justify-center gap-1">
-                                <motion.div 
-                                    initial={{ height: 0 }}
-                                    animate={{ height: `${h}%` }}
-                                    transition={{ delay: i * 0.05, duration: 1, ease: "circOut" }}
-                                    className="w-full bg-gradient-to-t from-indigo-500/20 to-indigo-500/80 rounded-t-sm group-hover:to-indigo-400 transition-all border-t border-indigo-400/30" 
-                                />
-                                <motion.div 
-                                    initial={{ height: 0 }}
-                                    animate={{ height: `${h * 0.3}%` }}
-                                    transition={{ delay: i * 0.05 + 0.5, duration: 1 }}
-                                    className="w-full bg-rose-500/40 rounded-t-sm group-hover:bg-rose-500/60 transition-all" 
-                                />
+                    {(stats?.growth && stats.growth.length > 0 ? stats.growth : Array.from({ length: 12 }, (_, i) => ({ month: `M${i+1}`, total: 0 }))).map((data: any, i: number) => {
+                        const maxTotal = Math.max(...(stats?.growth?.map((g: any) => g.total) || [1]));
+                        const heightPercent = maxTotal > 0 ? (data.total / maxTotal) * 100 : 0;
+                        const h = heightPercent === 0 && data.total === 0 ? 5 : heightPercent; // Show a tiny bit if 0 for better UI
+
+                        return (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-2 group cursor-crosshair">
+                                <div className="w-full h-full relative flex items-end justify-center gap-1">
+                                    <motion.div 
+                                        initial={{ height: 0 }}
+                                        animate={{ height: `${h}%` }}
+                                        transition={{ delay: i * 0.05, duration: 1, ease: "circOut" }}
+                                        className="w-full bg-gradient-to-t from-indigo-500/20 to-indigo-500/80 rounded-t-sm group-hover:to-indigo-400 transition-all border-t border-indigo-400/30 shadow-[0_0_15px_-3px_rgba(99,102,241,0.2)]" 
+                                    />
+                                    
+                                    {/* Tooltip */}
+                                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-xl border border-white/10 px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-10 whitespace-nowrap scale-90 group-hover:scale-100">
+                                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">{data.month}</p>
+                                        <p className="text-sm font-black text-white italic">₹{data.total.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                                <span className="text-[10px] font-black text-neutral-500 uppercase tracking-tighter">{data.month.split(' ')[0]}</span>
                             </div>
-                            <span className="text-[8px] font-black text-neutral-600 uppercase">M{i+1}</span>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
+
             </div>
         </div>
     );

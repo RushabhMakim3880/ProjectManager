@@ -15,19 +15,34 @@ export const getAgencyStats = async (req, res, next) => {
         const convertedEnquiries = await prisma.enquiry.count({
             where: { projectId: { not: null } }
         });
-        // Revenue Over Time (Last 6 Months)
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        // Revenue Over Time (Last 12 Months)
+        const twelveMonthsAgo = new Date();
+        twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
+        twelveMonthsAgo.setDate(1);
         const projectGrowth = await prisma.project.findMany({
-            where: { createdAt: { gte: sixMonthsAgo } },
+            where: { createdAt: { gte: twelveMonthsAgo } },
             select: { createdAt: true, totalValue: true }
+        });
+        // Aggregate by month
+        const monthlyGrowth = Array.from({ length: 12 }, (_, i) => {
+            const date = new Date();
+            date.setMonth(date.getMonth() - (11 - i));
+            const monthLabel = date.toLocaleString('default', { month: 'short' });
+            const monthYear = `${monthLabel} ${date.getFullYear()}`;
+            const monthTotal = projectGrowth
+                .filter((p) => {
+                const pDate = new Date(p.createdAt);
+                return pDate.getMonth() === date.getMonth() && pDate.getFullYear() === date.getFullYear();
+            })
+                .reduce((sum, p) => sum + (p.totalValue || 0), 0);
+            return { month: monthYear, total: monthTotal };
         });
         res.json({
             revenue: totalRevenue._sum.totalValue || 0,
             activeProjects,
             completedProjects: completedProjectsCount,
             conversionRate: totalEnquiries > 0 ? (convertedEnquiries / totalEnquiries) * 100 : 0,
-            growth: projectGrowth
+            growth: monthlyGrowth
         });
     }
     catch (error) {
@@ -40,7 +55,7 @@ export const getPartnerPerformance = async (req, res, next) => {
             include: {
                 user: { select: { name: true, displayName: true } },
                 contributions: {
-                    include: { project: { select: { name: true, totalValue: true, status: true } } }
+                    include: { project: { select: { id: true, name: true, totalValue: true, status: true } } }
                 },
                 tasks: {
                     where: { status: 'DONE' }
@@ -50,12 +65,22 @@ export const getPartnerPerformance = async (req, res, next) => {
         });
         const performanceData = partners.map((p) => {
             const totalTasks = p.tasks.length;
-            const totalEarnings = p.payouts.reduce((sum, pay) => sum + pay.totalPayout, 0);
+            // Calculate Accrued Earnings: Summary of (Project Total * Contribution % * 0.8)
+            // 0.8 because 10% is business reserve and 10% is Sharmadiya Seth (Total 20% deduction)
+            const accruedEarnings = p.contributions.reduce((sum, c) => {
+                const projectValue = c.project.totalValue || 0;
+                const share = (projectValue * (c.percentage / 100)) * 0.8;
+                return sum + share;
+            }, 0);
+            const paidEarnings = p.payouts.reduce((sum, pay) => sum + pay.totalPayout, 0);
+            const totalEarnings = Math.max(accruedEarnings, paidEarnings); // Fallback to payouts if higher
             const activeProjectCount = p.contributions.filter((c) => c.project.status === 'ACTIVE').length;
             return {
                 id: p.id,
                 name: p.user.displayName || p.user.name,
                 totalEarnings,
+                accruedEarnings,
+                paidEarnings,
                 taskCount: totalTasks,
                 activeProjects: activeProjectCount,
                 skills: p.skills ? p.skills.split(',') : []
