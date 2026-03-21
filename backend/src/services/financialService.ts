@@ -15,7 +15,7 @@ export interface FinancialMetrics {
 
 export class FinancialService {
     private static readonly BUSINESS_RESERVE_PERCENT = 0.10;
-    private static readonly RELIGIOUS_PERCENT = 0.05;
+    private static readonly SHARMADIYA_SETH_PERCENT = 0.10; // 10% for Sharmadiya Seth (Default Partner)
     private static readonly BASE_POOL_PERCENT = 0.20;
     private static readonly PERFORMANCE_POOL_PERCENT = 0.80;
 
@@ -36,8 +36,8 @@ export class FinancialService {
 
         // STEP 1 — RESERVE CALCULATION
         const businessReserve = Number((GPR * this.BUSINESS_RESERVE_PERCENT).toFixed(2));
-        const religiousAllocation = Number((GPR * this.RELIGIOUS_PERCENT).toFixed(2));
-        const NDP = Number((GPR - (businessReserve + religiousAllocation)).toFixed(2));
+        const sharmadiyaSethAllocation = Number((GPR * this.SHARMADIYA_SETH_PERCENT).toFixed(2));
+        const NDP = Number((GPR - (businessReserve + sharmadiyaSethAllocation)).toFixed(2));
 
         // STEP 2 — SPLIT INTO POOLS
         const basePool = Number((NDP * this.BASE_POOL_PERCENT).toFixed(2));
@@ -62,7 +62,7 @@ export class FinancialService {
         // STEP 6 — OUTPUT STRUCTURE
         return {
             businessReserve,
-            religiousAllocation,
+            religiousAllocation: sharmadiyaSethAllocation,
             NDP,
             basePool,
             performancePool,

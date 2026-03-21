@@ -12,7 +12,7 @@ export interface FinancialMetrics {
 }
 export declare class FinancialService {
     private static readonly BUSINESS_RESERVE_PERCENT;
-    private static readonly RELIGIOUS_PERCENT;
+    private static readonly SHARMADIYA_SETH_PERCENT;
     private static readonly BASE_POOL_PERCENT;
     private static readonly PERFORMANCE_POOL_PERCENT;
     /**

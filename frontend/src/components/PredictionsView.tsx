@@ -95,7 +95,7 @@ export default function PredictionsView({ projectId, project }: PredictionsViewP
                 {[
                     { label: 'Predicted Total Income', value: predictedIncome, icon: Target, color: 'indigo', desc: 'Max of Budget vs Actual' },
                     { label: 'Predicted GPR', value: predictedGPR, icon: DollarSign, color: 'emerald', desc: 'Income - Current OpEx' },
-                    { label: 'Net Profit Reservoir', value: predictions?.NDP || 0, icon: PieChart, color: 'amber', desc: '85% Post-Reserves' },
+                    { label: 'Net Profit Reservoir', value: predictions?.NDP || 0, icon: PieChart, color: 'amber', desc: '80% Post-Reserves & Spiritual' },
                 ].map((stat, i) => (
                     <div key={i} className="glass-card p-6 border-neutral-800 bg-neutral-900/40 relative overflow-hidden group">
                         <div className={`absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700`}>

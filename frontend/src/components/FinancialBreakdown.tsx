@@ -37,13 +37,13 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
 
     // Constants to match deterministic backend logic
     const BUSINESS_RESERVE_PERCENT = 0.10;
-    const RELIGIOUS_PERCENT = 0.05;
+    const SHARMADIYA_SETH_PERCENT = 0.10;
     const BASE_POOL_PERCENT = 0.20;
     const PERFORMANCE_POOL_PERCENT = 0.80;
 
     const businessGrowth = latestFinancial?.businessReserve ?? Number((actualBalance * BUSINESS_RESERVE_PERCENT).toFixed(2));
-    const religiousAllocation = latestFinancial?.religiousAllocation ?? Number((actualBalance * RELIGIOUS_PERCENT).toFixed(2));
-    const netDistributable = latestFinancial?.netDistributable ?? Number((actualBalance - businessGrowth - religiousAllocation).toFixed(2));
+    const sharmadiyaSethAllocation = latestFinancial?.religiousAllocation ?? Number((actualBalance * SHARMADIYA_SETH_PERCENT).toFixed(2));
+    const netDistributable = latestFinancial?.netDistributable ?? Number((actualBalance - businessGrowth - sharmadiyaSethAllocation).toFixed(2));
 
     const basePoolTotal = latestFinancial?.basePool ?? Number((netDistributable * BASE_POOL_PERCENT).toFixed(2));
     const performancePoolTotal = latestFinancial?.performancePool ?? Number((netDistributable * PERFORMANCE_POOL_PERCENT).toFixed(2));
@@ -236,16 +236,18 @@ export default function FinancialBreakdown({ project, totalPartnerCount = 1, all
                             <div className="space-y-3">
                                 <div className="flex justify-between items-end border-b border-neutral-800 pb-3">
                                     <div>
-                                        <span className="text-xs text-neutral-400 font-bold block">Religious/Charity (5%)</span>
-                                        <span className="text-[10px] text-neutral-600 uppercase tracking-widest italic font-medium">Mandatory Dist. Buffer</span>
+                                        <span className="text-xs text-amber-400 font-bold block flex items-center gap-1.5">
+                                            <Shield className="w-3 h-3" /> Sharmadiya Seth (10%)
+                                        </span>
+                                        <span className="text-[10px] text-neutral-600 uppercase tracking-widest italic font-medium">Default Spiritual Partner</span>
                                     </div>
-                                    <span className="text-sm font-black text-rose-400">₹{religiousAllocation.toLocaleString()}</span>
+                                    <span className="text-sm font-black text-amber-400">₹{sharmadiyaSethAllocation.toLocaleString()}</span>
                                 </div>
 
                                 <div className={`p-3 rounded-xl border ${totalFaithSpent > religiousAllocation ? 'bg-amber-500/10 border-amber-500/20' : 'bg-neutral-900/50 border-neutral-800'}`}>
                                     <div className="flex justify-between items-center mb-1.5">
                                         <span className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Realized Spending</span>
-                                        <span className={`text-[10px] font-black ${totalFaithSpent > religiousAllocation ? 'text-amber-400' : 'text-neutral-400'}`}>
+                                        <span className={`text-[10px] font-black ${totalFaithSpent > sharmadiyaSethAllocation ? 'text-rose-400' : 'text-neutral-400'}`}>
                                             ₹{totalFaithSpent.toLocaleString()}
                                         </span>
                                     </div>

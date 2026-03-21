@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 export class FinancialService {
     static BUSINESS_RESERVE_PERCENT = 0.10;
-    static RELIGIOUS_PERCENT = 0.05;
+    static SHARMADIYA_SETH_PERCENT = 0.10; // 10% for Sharmadiya Seth (Default Partner)
     static BASE_POOL_PERCENT = 0.20;
     static PERFORMANCE_POOL_PERCENT = 0.80;
     /**
@@ -21,8 +21,8 @@ export class FinancialService {
         }
         // STEP 1 — RESERVE CALCULATION
         const businessReserve = Number((GPR * this.BUSINESS_RESERVE_PERCENT).toFixed(2));
-        const religiousAllocation = Number((GPR * this.RELIGIOUS_PERCENT).toFixed(2));
-        const NDP = Number((GPR - (businessReserve + religiousAllocation)).toFixed(2));
+        const sharmadiyaSethAllocation = Number((GPR * this.SHARMADIYA_SETH_PERCENT).toFixed(2));
+        const NDP = Number((GPR - (businessReserve + sharmadiyaSethAllocation)).toFixed(2));
         // STEP 2 — SPLIT INTO POOLS
         const basePool = Number((NDP * this.BASE_POOL_PERCENT).toFixed(2));
         const performancePool = Number((NDP * this.PERFORMANCE_POOL_PERCENT).toFixed(2));
@@ -42,7 +42,7 @@ export class FinancialService {
         // STEP 6 — OUTPUT STRUCTURE
         return {
             businessReserve,
-            religiousAllocation,
+            religiousAllocation: sharmadiyaSethAllocation,
             NDP,
             basePool,
             performancePool,
